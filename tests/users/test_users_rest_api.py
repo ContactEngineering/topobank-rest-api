@@ -216,7 +216,7 @@ def test_add_remove_organization(api_client, user_alice, user_staff):
             "organizations:organization-v1-detail", kwargs={"pk": org.id}
         )
     }
-    
+
     # Anonymous user cannot add organizations
     response = api_client.post(
         reverse("users:add-organization-v1", kwargs={"pk": user_alice.id}),

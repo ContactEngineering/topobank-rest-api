@@ -469,7 +469,7 @@ def test_query_pending(
         f"?subjects={subjects_to_base64([tag])}"
         f"&workflow={test_analysis_function.name}"
     )
-    
+
     # We need to ensure the WorkflowResult has a submission time recently,
     # otherwise get_task_state() might return FAILURE if it thinks the
     # on_commit hook never triggered.

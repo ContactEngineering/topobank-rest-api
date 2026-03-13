@@ -2,10 +2,13 @@
 # Common settings and fixtures used with pytest
 #
 
+import pytest
+
 import topobank.testing.fixtures  # noqa: F401, F403
 import topobank.testing.workflows  # noqa: F401
 import topobank_publication.urls  # noqa: F401
 from topobank.testing.fixtures import *  # noqa: F401, F403
+
 
 @pytest.fixture(scope="session", autouse=True)
 def register_testing_workflows(django_db_setup, django_db_blocker):

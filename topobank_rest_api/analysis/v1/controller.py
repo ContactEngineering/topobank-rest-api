@@ -2,11 +2,10 @@ import logging
 from collections import defaultdict
 from functools import reduce
 
-from django.shortcuts import get_object_or_404
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 
 from topobank.manager.utils import dict_from_base64
-from topobank.analysis.models import Workflow, WorkflowTemplate
+from topobank.analysis.models import WorkflowTemplate
 from topobank.analysis.utils import merge_dicts
 from topobank.analysis.controller import AnalysisController as CoreAnalysisController
 from ..serializers import ResultSerializer
