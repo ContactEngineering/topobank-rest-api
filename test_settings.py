@@ -61,6 +61,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "topobank.middleware.anonymous_user_middleware",
 ]
 
 STATIC_URL = '/static/'
@@ -174,4 +175,4 @@ SERIALIZATION_MODULES = {
 
 DJANGO_NOTIFICATIONS_CONFIG = {"USE_JSONFIELD": True}
 
-ROOT_URLCONF = "topobank_rest_api.urls"
+ROOT_URLCONF = "test_urls"

@@ -6,8 +6,19 @@ import pytest
 
 import topobank.testing.fixtures  # noqa: F401, F403
 import topobank.testing.workflows  # noqa: F401
-import topobank_publication.urls  # noqa: F401
 from topobank.testing.fixtures import *  # noqa: F401, F403
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from topobank.users.models import User
+from django.contrib.auth.models import Group
+
+@receiver(post_save, sender=User)
+def add_to_default_group(sender, instance, created, **kwargs):
+    if created:
+        from topobank.organizations.models import DEFAULT_GROUP_NAME
+        group, _ = Group.objects.get_or_create(name=DEFAULT_GROUP_NAME)
+        instance.groups.add(group)
 
 
 @pytest.fixture(scope="session", autouse=True)
