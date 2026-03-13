@@ -60,7 +60,7 @@ target-version = ["py310", "py311", "py312", "py313"]
 profile = "black"
 
 [tool.pytest.ini_options]
-env = ["DJANGO_SETTINGS_MODULE=ce_ui.settings.test"]
+env = ["DJANGO_SETTINGS_MODULE=test_settings"]
 pythonpath = ["."]
 
 
