@@ -27,14 +27,52 @@ jobs:
 
     env:
       USE_DOCKER: no
-      DJANGO_SETTINGS_MODULE: ce_ui.settings.test
+      DJANGO_SETTINGS_MODULE: topobank_rest_api.test_settings
       DATABASE_URL: postgres://postgres:secret@localhost/topobank-test
+      STORAGE_BACKEND: storages.backends.s3boto3.S3Boto3Storage
+      TOPOBANK_UPLOAD_METHOD: POST
+      AWS_ACCESS_KEY_ID: admin
+      AWS_SECRET_ACCESS_KEY: secret12
+      AWS_STORAGE_BUCKET_NAME: topobank-test
+      AWS_S3_ENDPOINT_URL: http://localhost:9000
 
     strategy:
       matrix:
         python-version: ['3.10']
 
     steps:
+    - name: Start Minio
+      run: |
+        docker run -d \
+          --name minio \
+          -p 9000:9000 \
+          -p 9001:9001 \
+          -e MINIO_ROOT_USER=$AWS_ACCESS_KEY_ID \
+          -e MINIO_ROOT_PASSWORD=$AWS_SECRET_ACCESS_KEY \
+          minio/minio:latest \
+          server /data --console-address ":9001"
+
+    - name: Create bucket
+      run: |
+        curl https://dl.min.io/client/mc/release/linux-amd64/mc --create-dirs -o $HOME/minio-binaries/mc
+        chmod +x $HOME/minio-binaries/mc
+        export PATH=$PATH:$HOME/minio-binaries/
+
+        # Wait for Minio to be ready
+        echo "Waiting for Minio to be ready..."
+        for i in {1..30}; do
+          if mc alias set minio $AWS_S3_ENDPOINT_URL $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY 2>/dev/null; then
+            echo "Minio is ready!"
+            break
+          fi
+          echo "Attempt $i: Minio not ready yet, waiting..."
+          sleep 2
+        done
+
+        # Verify the alias was set successfully
+        mc alias list minio
+        mc mb --ignore-existing minio/$AWS_STORAGE_BUCKET_NAME
+
     - uses: actions/checkout@v6
       with:
         fetch-depth: 0
@@ -49,13 +87,11 @@ jobs:
       run: |
         pip install --upgrade pip pip-tools
         pushd /tmp
-        git clone https://github.com/ContactEngineering/topobank.git
-        git clone https://github.com/ContactEngineering/ce-ui.git
+        git clone -b 26_split_topobank https://github.com/ContactEngineering/topobank.git
         popd
-        pip-compile --extra dev pyproject.toml /tmp/topobank/pyproject.toml /tmp/ce-ui/pyproject.toml
+        pip-compile --extra dev pyproject.toml /tmp/topobank/pyproject.toml
         pip install -r requirements.txt
         pip install -e .[dev]
-        pip install /tmp/ce-ui
         pushd /tmp/topobank
         USE_DOCKER=no python manage.py collectstatic
         popd
