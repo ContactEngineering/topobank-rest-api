@@ -92,9 +92,6 @@ jobs:
         pip-compile --extra dev pyproject.toml /tmp/topobank/pyproject.toml
         pip install -r requirements.txt
         pip install -e .[dev]
-        pushd /tmp/topobank
-        USE_DOCKER=no python manage.py collectstatic
-        popd
 
     - name: Test
       run: PYTHONPATH="/tmp/topobank" pytest -s -v -rsx
