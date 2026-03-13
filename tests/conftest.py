@@ -3,15 +3,14 @@
 #
 
 import pytest
-
 import topobank.testing.fixtures  # noqa: F401, F403
 import topobank.testing.workflows  # noqa: F401
-from topobank.testing.fixtures import *  # noqa: F401, F403
-
+from django.contrib.auth.models import Group
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from topobank.testing.fixtures import *  # noqa: F401, F403
 from topobank.users.models import User
-from django.contrib.auth.models import Group
+
 
 @receiver(post_save, sender=User)
 def add_to_default_group(sender, instance, created, **kwargs):
@@ -26,12 +25,12 @@ def register_testing_workflows(django_db_setup, django_db_blocker):
     from django.core.management import call_command
     from topobank.analysis.registry import register_implementation
     from topobank.testing.workflows import (
-        TestImplementation,
-        TopographyOnlyTestImplementation,
         SecondTestImplementation,
+        TestImplementation,
         TestImplementationWithError,
         TestImplementationWithErrorInDependency,
-        TestImplementationWithOutputs
+        TestImplementationWithOutputs,
+        TopographyOnlyTestImplementation,
     )
     register_implementation(TestImplementation)
     register_implementation(TopographyOnlyTestImplementation)

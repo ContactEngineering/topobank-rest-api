@@ -1,13 +1,14 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-
 from topobank.authorization.models import PermissionSet
 from topobank.authorization.permissions import FULL, VIEW
-from topobank_rest_api.supplib.serializers import ModelRelatedField, UserField
-
-from topobank.supplib.mixins import StrictFieldMixin
 from topobank.files.models import Manifest
-from ce_ui.utils import get_upload_instructions as get_upload_instructions_ce_ui
+from topobank.supplib.mixins import StrictFieldMixin
+
+from topobank_rest_api.supplib.serializers import ModelRelatedField, UserField
+from topobank_rest_api.utils import (
+    get_upload_instructions as get_upload_instructions_api,
+)
 
 
 class ManifestV2Serializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
@@ -69,7 +70,7 @@ class ManifestV2Serializer(StrictFieldMixin, serializers.HyperlinkedModelSeriali
         }
     )
     def get_upload_instructions(self, obj: Manifest) -> dict | None:
-        return None if obj.exists() else get_upload_instructions_ce_ui(obj)
+        return None if obj.exists() else get_upload_instructions_api(obj)
 
 
 class ManifestV2CreateSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
