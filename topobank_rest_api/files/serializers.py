@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from topobank.supplib.mixins import StrictFieldMixin
 from topobank.files.models import Folder, Manifest
+from ce_ui.utils import get_upload_instructions as get_upload_instructions_ce_ui
 
 _log = logging.getLogger(__name__)
 
@@ -74,6 +75,6 @@ class ManifestSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerialize
         if obj.exists():
             return None
         try:
-            return obj.get_upload_instructions()
+            return get_upload_instructions_ce_ui(obj)
         except RuntimeError:
             return None

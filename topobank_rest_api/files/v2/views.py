@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from topobank.authorization.permissions import EDIT, PermissionFilterBackend
 from topobank.supplib.mixins import UserUpdateMixin
-from topobank.supplib.pagination import TopobankPaginator
+from topobank_rest_api.supplib.pagination import TopobankPaginator
 
 from topobank.files.models import Manifest
 from topobank.files.permissions import ManifestPermission

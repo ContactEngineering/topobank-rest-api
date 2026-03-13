@@ -31,7 +31,7 @@ from topobank.supplib.versions import get_versions
 from topobank.taskapp.utils import run_task
 from topobank.users.models import User, resolve_user
 from topobank.manager.export_zip import export_container_zip
-from topobank.manager.filters import filter_surfaces
+from topobank_rest_api.manager.filters import filter_surfaces
 from topobank.manager.models import Surface, Tag, Topography
 from topobank.manager.permissions import TagPermission
 from topobank.manager.tasks import import_container_from_url
