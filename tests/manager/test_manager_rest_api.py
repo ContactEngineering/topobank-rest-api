@@ -1,6 +1,7 @@
 import json
 
 import numpy
+from topobank_rest_api.utils import get_api_url
 import pytest
 from rest_framework.reverse import reverse
 
@@ -58,7 +59,7 @@ def test_surface_retrieve_routes(
         },
         "creation_datetime": surface1.created_at.astimezone().isoformat(),
         "modification_datetime": surface1.updated_at.astimezone().isoformat(),
-        "attachments": surface1.attachments.get_absolute_url(response.wsgi_request),
+        "attachments": get_api_url(surface1.attachments, response.wsgi_request),
         "topographies": f"{topography_api_list_url}?surface={surface1.id}",
         "properties": {},
         "permissions": ASSERT_EQUAL_IGNORE_VALUE,
@@ -68,7 +69,7 @@ def test_surface_retrieve_routes(
         surface1_dict["publication"] = None
     surface1_topographies_dict = [
         {
-            "attachments": topo1.attachments.get_absolute_url(response.wsgi_request),
+            "attachments": get_api_url(topo1.attachments, response.wsgi_request),
             "bandwidth_lower": topo1.bandwidth_lower,
             "bandwidth_upper": topo1.bandwidth_upper,
             "creator": f"http://testserver/users/v1/user/{user.id}/",
@@ -132,7 +133,7 @@ def test_surface_retrieve_routes(
         },
         "creation_datetime": surface2.created_at.astimezone().isoformat(),
         "modification_datetime": surface2.updated_at.astimezone().isoformat(),
-        "attachments": surface2.attachments.get_absolute_url(response.wsgi_request),
+        "attachments": get_api_url(surface2.attachments, response.wsgi_request),
         "topographies": f"{topography_api_list_url}?surface={surface2.id}",
         "properties": {},
         "permissions": ASSERT_EQUAL_IGNORE_VALUE,
@@ -142,7 +143,7 @@ def test_surface_retrieve_routes(
         surface2_dict["publication"] = None
     surface2_topographies_dict = [
         {
-            "attachments": topo2.attachments.get_absolute_url(response.wsgi_request),
+            "attachments": get_api_url(topo2.attachments, response.wsgi_request),
             "bandwidth_lower": topo2.bandwidth_lower,
             "bandwidth_upper": topo2.bandwidth_upper,
             "creator": f"http://testserver/users/v1/user/{user.id}/",
@@ -309,13 +310,13 @@ def test_topography_retrieve_routes(
         ],
         "creation_datetime": topo1.created_at.astimezone().isoformat(),
         "modification_datetime": topo1.updated_at.astimezone().isoformat(),
-        "attachments": topo1.attachments.get_absolute_url(response.wsgi_request),
+        "attachments": get_api_url(topo1.attachments, response.wsgi_request),
         "deepzoom": ASSERT_EQUAL_IGNORE_VALUE,
         "datafile": ASSERT_EQUAL_IGNORE_VALUE,
         "squeezed_datafile": ASSERT_EQUAL_IGNORE_VALUE,
         "permissions": {
             "current_user": {
-                "user": user.get_absolute_url(response.wsgi_request),
+                "user": get_api_url(user, response.wsgi_request),
                 "permission": "full",
             },
             "other_users": [],
@@ -364,13 +365,13 @@ def test_topography_retrieve_routes(
         "channel_names": [],
         "creation_datetime": topo2.created_at.astimezone().isoformat(),
         "modification_datetime": topo2.updated_at.astimezone().isoformat(),
-        "attachments": topo2.attachments.get_absolute_url(response.wsgi_request),
+        "attachments": get_api_url(topo2.attachments, response.wsgi_request),
         "deepzoom": ASSERT_EQUAL_IGNORE_VALUE,
         "datafile": ASSERT_EQUAL_IGNORE_VALUE,
         "squeezed_datafile": ASSERT_EQUAL_IGNORE_VALUE,
         "permissions": {
             "current_user": {
-                "user": user.get_absolute_url(response.wsgi_request),
+                "user": get_api_url(user, response.wsgi_request),
                 "permission": "full",
             },
             "other_users": [],
@@ -789,7 +790,7 @@ def test_tag_retrieve_routes(api_client, two_users, handle_usage_statistics):
         "manager:topography-api-list", request=response.wsgi_request
     )
     expected_surface3_dict = {
-        "url": surface3.get_absolute_url(response.wsgi_request),
+        "url": get_api_url(surface3, response.wsgi_request),
         "api": {
             "set_permissions": ASSERT_EQUAL_IGNORE_VALUE,
             "download": ASSERT_EQUAL_IGNORE_VALUE,
@@ -798,14 +799,12 @@ def test_tag_retrieve_routes(api_client, two_users, handle_usage_statistics):
         "id": surface3.id,
         "name": surface3.name,
         "category": None,
-        "creator": surface2.created_by.get_absolute_url(response.wsgi_request),
+        "creator": get_api_url(surface2.created_by, response.wsgi_request),
         "description": "",
         "tags": [st.name],
         "creation_datetime": surface3.created_at.astimezone().isoformat(),
         "modification_datetime": surface3.updated_at.astimezone().isoformat(),
-        "attachments": surface3.attachments.get_absolute_url(
-            response.wsgi_request
-        ),
+        "attachments": get_api_url(surface3.attachments, response.wsgi_request),
         "topographies": f"{topography_api_list_url}?surface={surface3.id}",
         "properties": {},
         "topography_set": ASSERT_EQUAL_IGNORE_VALUE,
@@ -815,7 +814,7 @@ def test_tag_retrieve_routes(api_client, two_users, handle_usage_statistics):
         expected_surface3_dict["publication"] = None
 
     expected_surface2_dict = {
-        "url": surface2.get_absolute_url(response.wsgi_request),
+        "url": get_api_url(surface2, response.wsgi_request),
         "api": {
             "set_permissions": ASSERT_EQUAL_IGNORE_VALUE,
             "download": ASSERT_EQUAL_IGNORE_VALUE,
@@ -824,14 +823,12 @@ def test_tag_retrieve_routes(api_client, two_users, handle_usage_statistics):
         "id": surface2.id,
         "name": surface2.name,
         "category": None,
-        "creator": surface2.created_by.get_absolute_url(response.wsgi_request),
+        "creator": get_api_url(surface2.created_by, response.wsgi_request),
         "description": "",
         "tags": [st.name],
         "creation_datetime": surface2.created_at.astimezone().isoformat(),
         "modification_datetime": surface2.updated_at.astimezone().isoformat(),
-        "attachments": surface2.attachments.get_absolute_url(
-            response.wsgi_request
-        ),
+        "attachments": get_api_url(surface2.attachments, response.wsgi_request),
         "topographies": f"{topography_api_list_url}?surface={surface2.id}",
         "properties": {},
         "topography_set": ASSERT_EQUAL_IGNORE_VALUE,
@@ -999,7 +996,7 @@ def test_set_surface_permissions_user(
         reverse("manager:set-surface-permissions", kwargs=dict(pk=surface.id)),
         [
             {
-                "user": user_bob.get_absolute_url(response.wsgi_request),
+                "user": get_api_url(user_bob, response.wsgi_request),
                 "permission": "full",
             }
         ],
@@ -1017,7 +1014,7 @@ def test_set_surface_permissions_user(
         set_permissions_url,
         [
             {
-                "user": user_bob.get_absolute_url(response.wsgi_request),
+                "user": get_api_url(user_bob, response.wsgi_request),
                 "permission": "no-access",
             }
         ],
@@ -1028,7 +1025,7 @@ def test_set_surface_permissions_user(
         set_permissions_url,
         [
             {
-                "user": user_alice.get_absolute_url(response.wsgi_request),
+                "user": get_api_url(user_alice, response.wsgi_request),
                 "permission": "no-access",
             }
         ],
@@ -1066,7 +1063,7 @@ def test_set_surface_permissions_organization(
         reverse("manager:set-surface-permissions", kwargs=dict(pk=surface.id)),
         [
             {
-                "organization": org_blofield.get_absolute_url(response.wsgi_request),
+                "organization": get_api_url(org_blofield, response.wsgi_request),
                 "permission": "full",
             }
         ],
@@ -1103,7 +1100,7 @@ def test_set_tag_permissions(api_client, user_alice, user_bob, handle_usage_stat
         reverse("manager:set-tag-permissions", kwargs=dict(name=tag.name)),
         [
             {
-                "user": user_bob.get_absolute_url(response.wsgi_request),
+                "user": get_api_url(user_bob, response.wsgi_request),
                 "permission": "full",
             }
         ],
@@ -1126,7 +1123,7 @@ def test_set_tag_permissions(api_client, user_alice, user_bob, handle_usage_stat
         reverse("manager:set-tag-permissions", kwargs=dict(name=tag.name)),
         [
             {
-                "user": user_bob.get_absolute_url(response.wsgi_request),
+                "user": get_api_url(user_bob, response.wsgi_request),
                 "permission": "no-access",
             }
         ],
@@ -1137,7 +1134,7 @@ def test_set_tag_permissions(api_client, user_alice, user_bob, handle_usage_stat
         reverse("manager:set-tag-permissions", kwargs=dict(name=tag.name)),
         [
             {
-                "user": user_alice.get_absolute_url(response.wsgi_request),
+                "user": get_api_url(user_alice, response.wsgi_request),
                 "permission": "no-access",
             }
         ],

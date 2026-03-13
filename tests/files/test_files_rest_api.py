@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from topobank_rest_api.utils import get_api_url
 from django.core.files import File
 from rest_framework.reverse import reverse
 
@@ -9,7 +10,8 @@ from topobank.files.models import Folder, Manifest
 from topobank.files.utils import file_storage_path
 from topobank.testing.data import FIXTURE_DATA_DIR
 from topobank.testing.factories import FolderFactory, ManifestFactory
-from topobank.testing.utils import assert_dict_equal, upload_file
+from topobank.testing.utils import assert_dict_equal
+from tests.utils import upload_file
 
 
 @pytest.mark.django_db
@@ -187,7 +189,7 @@ def test_modify_file(
     # Alice should not be able to move the file to that folder
     response = api_client.patch(
         reverse("files:manifest-api-detail", kwargs={"pk": manifest1.id}),
-        {"folder": folder2.get_absolute_url(response.wsgi_request)},
+        {"folder": get_api_url(folder2, response.wsgi_request)},
     )
     assert response.status_code == 403
 
@@ -195,7 +197,7 @@ def test_modify_file(
     permissions.grant_for_user(user_alice, "edit")
     response = api_client.patch(
         reverse("files:manifest-api-detail", kwargs={"pk": manifest1.id}),
-        {"folder": folder2.get_absolute_url(response.wsgi_request)},
+        {"folder": get_api_url(folder2, response.wsgi_request)},
     )
     assert response.status_code == (403 if read_only or read_only2 else 200)
 
@@ -227,7 +229,7 @@ def test_create_file(api_client, user_alice, read_only, handle_usage_statistics)
         reverse("files:manifest-api-list"),  # FileManifestViewSet
         {
             "filename": filename,
-            "folder": folder.get_absolute_url(response.wsgi_request),
+            "folder": get_api_url(folder, response.wsgi_request),
         },
     )
     # FIXME - User is not logged in, should get 401 - see comment above
@@ -251,7 +253,7 @@ def test_create_file(api_client, user_alice, read_only, handle_usage_statistics)
         reverse("files:manifest-api-list"),
         {
             "filename": filename,
-            "folder": folder.get_absolute_url(response.wsgi_request),
+            "folder": get_api_url(folder, response.wsgi_request),
         },
     )
     assert response.status_code == (403 if read_only else 201)

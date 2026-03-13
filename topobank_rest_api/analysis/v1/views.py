@@ -25,6 +25,7 @@ from ...files.serializers import ManifestSerializer
 from topobank.manager.models import Surface
 from topobank.manager.utils import demangle_content_type
 from topobank.analysis.models import Configuration, Workflow, WorkflowResult, WorkflowTemplate
+from topobank_rest_api.utils import get_api_url
 from topobank.analysis.permissions import WorkflowPermissions
 from ..serializers import (
     ConfigurationSerializer,
@@ -174,9 +175,7 @@ def dependencies(request, workflow_id):
     dependencies = {}
     for name, id in analysis.dependencies.items():
         try:
-            dependencies[name] = WorkflowResult.objects.get(pk=id).get_absolute_url(
-                request
-            )
+            dependencies[name] = get_api_url(WorkflowResult.objects.get(pk=id), request)
         except WorkflowResult.DoesNotExist:
             dependencies[name] = None
     return Response(dependencies)

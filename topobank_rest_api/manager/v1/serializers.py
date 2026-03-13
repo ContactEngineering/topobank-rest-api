@@ -1,3 +1,4 @@
+from topobank_rest_api.utils import get_api_url
 import logging
 
 import pydantic
@@ -252,12 +253,12 @@ class TopographySerializer(StrictFieldMixin, TaskStateModelSerializer):
         user_permissions = obj.permissions.user_permissions.all()
         return {
             "current_user": {
-                "user": current_user.get_absolute_url(request),
+                "user": get_api_url(current_user, request),
                 "permission": obj.get_permission(current_user),
             },
             "other_users": [
                 {
-                    "user": perm.user.get_absolute_url(request),
+                    "user": get_api_url(perm.user, request),
                     "permission": perm.allow,
                 }
                 for perm in user_permissions
@@ -394,12 +395,12 @@ class SurfaceSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer
         user_permissions = obj.permissions.user_permissions.all()
         return {
             "current_user": {
-                "user": current_user.get_absolute_url(request),
+                "user": get_api_url(current_user, request),
                 "permission": obj.get_permission(current_user),
             },
             "other_users": [
                 {
-                    "user": perm.user.get_absolute_url(request),
+                    "user": get_api_url(perm.user, request),
                     "permission": perm.allow,
                 }
                 for perm in user_permissions

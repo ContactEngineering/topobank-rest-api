@@ -3,6 +3,7 @@ import logging
 import os.path
 from io import BytesIO
 
+from topobank_rest_api.utils import get_api_url
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Case, F, Q, When
@@ -172,7 +173,7 @@ class TopographyViewSet(
             self.permission_denied(
                 self.request,
                 message=f"User {self.request.user} has no permission to edit dataset "
-                f"{parent.get_absolute_url()}.",
+                f"{get_api_url(parent)}.",
             )
 
         # Set created_by to current user when creating a new topography
@@ -462,7 +463,7 @@ def set_tag_permissions(request, name=None):
     for surface in obj.get_descendant_surfaces():
         # Check that user has the right to modify permissions
         if surface.has_permission(logged_in_user, "full"):
-            updated += [surface.get_absolute_url(request)]
+            updated += [get_api_url(surface, request)]
             # Loop over permissions
             for permission in request.data:
                 perm = permission.get("permission", None)
@@ -488,7 +489,7 @@ def set_tag_permissions(request, name=None):
                         reason="Can only set permissions for users or organizations."
                     )
         else:
-            rejected += [surface.get_absolute_url(request)]
+            rejected += [get_api_url(surface, request)]
 
     # Permissions were updated successfully, return 204 No Content
     return Response({"updated": updated, "rejected": rejected})

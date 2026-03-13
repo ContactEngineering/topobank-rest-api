@@ -1,3 +1,4 @@
+from topobank_rest_api.utils import get_api_url
 import pytest
 from rest_framework.reverse import reverse
 
@@ -84,7 +85,7 @@ def test_search_user(api_client, user_alice, user_bob, user_staff):
     assert user["name"] == user_bob.name
     assert user["username"] == user_bob.username
     assert user["id"] == user_bob.id
-    assert user["url"] == user_bob.get_absolute_url(response.wsgi_request)
+    assert user["url"] == get_api_url(user_bob, response.wsgi_request)
 
 
 @pytest.mark.django_db
