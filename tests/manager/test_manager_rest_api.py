@@ -769,60 +769,80 @@ def test_tag_retrieve_routes(api_client, two_users, handle_usage_statistics):
     )
     assert response.data["name"] == st.name
 
+    expected_tag_data = {
+        "url": ASSERT_EQUAL_IGNORE_VALUE,
+        "api": ASSERT_EQUAL_IGNORE_VALUE,
+        "id": ASSERT_EQUAL_IGNORE_VALUE,
+        "name": st.name,
+        "children": ASSERT_EQUAL_IGNORE_VALUE,
+        "path": ASSERT_EQUAL_IGNORE_VALUE,
+        "label": ASSERT_EQUAL_IGNORE_VALUE,
+        "slug": ASSERT_EQUAL_IGNORE_VALUE,
+        "level": ASSERT_EQUAL_IGNORE_VALUE,
+        "count": ASSERT_EQUAL_IGNORE_VALUE,
+    }
+
+    assert_dict_equal(response.data, expected_tag_data)
+
     response = api_client.get(f"{reverse('manager:surface-api-list')}?tag={st.name}")
     topography_api_list_url = reverse(
         "manager:topography-api-list", request=response.wsgi_request
     )
+    expected_surface3_dict = {
+        "url": surface3.get_absolute_url(response.wsgi_request),
+        "api": {
+            "set_permissions": ASSERT_EQUAL_IGNORE_VALUE,
+            "download": ASSERT_EQUAL_IGNORE_VALUE,
+            "async_download": ASSERT_EQUAL_IGNORE_VALUE,
+        },
+        "id": surface3.id,
+        "name": surface3.name,
+        "category": None,
+        "creator": surface2.created_by.get_absolute_url(response.wsgi_request),
+        "description": "",
+        "tags": [st.name],
+        "creation_datetime": surface3.created_at.astimezone().isoformat(),
+        "modification_datetime": surface3.updated_at.astimezone().isoformat(),
+        "attachments": surface3.attachments.get_absolute_url(
+            response.wsgi_request
+        ),
+        "topographies": f"{topography_api_list_url}?surface={surface3.id}",
+        "properties": {},
+        "topography_set": ASSERT_EQUAL_IGNORE_VALUE,
+        "permissions": ASSERT_EQUAL_IGNORE_VALUE,
+    }
+    if hasattr(Surface, "publication"):
+        expected_surface3_dict["publication"] = None
+
+    expected_surface2_dict = {
+        "url": surface2.get_absolute_url(response.wsgi_request),
+        "api": {
+            "set_permissions": ASSERT_EQUAL_IGNORE_VALUE,
+            "download": ASSERT_EQUAL_IGNORE_VALUE,
+            "async_download": ASSERT_EQUAL_IGNORE_VALUE,
+        },
+        "id": surface2.id,
+        "name": surface2.name,
+        "category": None,
+        "creator": surface2.created_by.get_absolute_url(response.wsgi_request),
+        "description": "",
+        "tags": [st.name],
+        "creation_datetime": surface2.created_at.astimezone().isoformat(),
+        "modification_datetime": surface2.updated_at.astimezone().isoformat(),
+        "attachments": surface2.attachments.get_absolute_url(
+            response.wsgi_request
+        ),
+        "topographies": f"{topography_api_list_url}?surface={surface2.id}",
+        "properties": {},
+        "topography_set": ASSERT_EQUAL_IGNORE_VALUE,
+        "permissions": ASSERT_EQUAL_IGNORE_VALUE,
+    }
+    if hasattr(Surface, "publication"):
+        expected_surface2_dict["publication"] = None
+
     assert_dicts_equal(
         response.data,
-        [
-            {
-                "url": surface3.get_absolute_url(response.wsgi_request),
-                "api": {
-                    "set_permissions": ASSERT_EQUAL_IGNORE_VALUE,
-                    "download": ASSERT_EQUAL_IGNORE_VALUE,
-                    "async_download": ASSERT_EQUAL_IGNORE_VALUE,
-                },
-                "id": surface3.id,
-                "name": surface3.name,
-                "category": None,
-                "creator": surface2.created_by.get_absolute_url(response.wsgi_request),
-                "description": "",
-                "tags": [st.name],
-                "creation_datetime": surface3.created_at.astimezone().isoformat(),
-                "modification_datetime": surface3.updated_at.astimezone().isoformat(),
-                "attachments": surface3.attachments.get_absolute_url(
-                    response.wsgi_request
-                ),
-                "topographies": f"{topography_api_list_url}?surface={surface3.id}",
-                "properties": {},
-                "topography_set": ASSERT_EQUAL_IGNORE_VALUE,
-                "permissions": ASSERT_EQUAL_IGNORE_VALUE,
-            },
-            {
-                "url": surface2.get_absolute_url(response.wsgi_request),
-                "api": {
-                    "set_permissions": ASSERT_EQUAL_IGNORE_VALUE,
-                    "download": ASSERT_EQUAL_IGNORE_VALUE,
-                    "async_download": ASSERT_EQUAL_IGNORE_VALUE,
-                },
-                "id": surface2.id,
-                "name": surface2.name,
-                "category": None,
-                "creator": surface2.created_by.get_absolute_url(response.wsgi_request),
-                "description": "",
-                "tags": [st.name],
-                "creation_datetime": surface2.created_at.astimezone().isoformat(),
-                "modification_datetime": surface2.updated_at.astimezone().isoformat(),
-                "attachments": surface2.attachments.get_absolute_url(
-                    response.wsgi_request
-                ),
-                "topographies": f"{topography_api_list_url}?surface={surface2.id}",
-                "properties": {},
-                "topography_set": ASSERT_EQUAL_IGNORE_VALUE,
-                "permissions": ASSERT_EQUAL_IGNORE_VALUE,
-            },
-        ],
+        [expected_surface3_dict, expected_surface2_dict],
     )
 
     response = api_client.get(reverse("manager:tag-api-list"))
@@ -841,12 +861,19 @@ def test_tag_retrieve_routes(api_client, two_users, handle_usage_statistics):
     assert response.data["name"] == "My"
     assert set(response.data["children"]) == {"My/fant&astic", "My/fant&astic-four"}
 
+    expected_tag_data["name"] = "My"
+    expected_tag_data["children"] = ASSERT_EQUAL_IGNORE_VALUE
+    # assert_dict_equal(response.data, expected_tag_data)
+
     response = api_client.get(
         f"{reverse('manager:tag-api-detail', kwargs=dict(name='My/fant&astic'))}?surfaces=yes"
     )
     assert response.status_code == 200
     assert response.data["name"] == "My/fant&astic"
     assert response.data["children"] == ["My/fant&astic/tag"]
+
+    expected_tag_data["name"] = "My/fant&astic"
+    # assert_dict_equal(response.data, expected_tag_data)
 
     response = api_client.get(
         f"{reverse('manager:surface-api-list')}?tag=My/fant&astic"
@@ -860,6 +887,9 @@ def test_tag_retrieve_routes(api_client, two_users, handle_usage_statistics):
     assert response.data["name"] == "My/fant&astic/tag"
     assert response.data["children"] == []
 
+    expected_tag_data["name"] = "My/fant&astic/tag"
+    assert response.data["name"] == "My/fant&astic/tag"
+    # assert_dict_equal(response.data, expected_tag_data)
     response = api_client.get(
         f"{reverse('manager:surface-api-list')}?tag=My/fant%26astic/tag"
     )
@@ -879,6 +909,10 @@ def test_tag_retrieve_routes(api_client, two_users, handle_usage_statistics):
     surface2.grant_permission(user1, "view")
     response = api_client.get(reverse("manager:tag-api-detail", kwargs=dict(name="My")))
     assert response.status_code == 200
+
+    expected_tag_data["name"] = "My"
+    expected_tag_data["children"] = ASSERT_EQUAL_IGNORE_VALUE
+    # assert_dict_equal(response.data, expected_tag_data)
 
     # Check top-level tags
     response = api_client.get(reverse("manager:tag-api-list"))

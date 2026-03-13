@@ -22,18 +22,18 @@ from rest_framework.permissions import (
 )
 from rest_framework.response import Response
 
-from ...authorization.permissions import ObjectPermission
-from ...files.models import Manifest
-from ...organizations.models import resolve_organization
-from ...supplib.mixins import UserUpdateMixin
-from ...supplib.versions import get_versions
-from ...taskapp.utils import run_task
-from ...users.models import User, resolve_user
-from ..export_zip import export_container_zip
-from ..filters import filter_surfaces
-from ..models import Surface, Tag, Topography
-from ..permissions import TagPermission
-from ..tasks import import_container_from_url
+from topobank.authorization.permissions import ObjectPermission
+from topobank.files.models import Manifest
+from topobank.organizations.models import resolve_organization
+from topobank.supplib.mixins import UserUpdateMixin
+from topobank.supplib.versions import get_versions
+from topobank.taskapp.utils import run_task
+from topobank.users.models import User, resolve_user
+from topobank.manager.export_zip import export_container_zip
+from topobank.manager.filters import filter_surfaces
+from topobank.manager.models import Surface, Tag, Topography
+from topobank.manager.permissions import TagPermission
+from topobank.manager.tasks import import_container_from_url
 from ..v1.serializers import SurfaceSerializer, TagSerializer, TopographySerializer
 
 _log = logging.getLogger(__name__)
@@ -179,12 +179,22 @@ class TopographyViewSet(
         # Don't pass permissions - let the save() method inherit from parent surface
         instance = serializer.save(created_by=self.request.user)
 
-        # File name is passed in the 'name' field on create. It is the only field that
-        # needs to be present for them create (POST) request.
-        if instance.datafile is None:
+        # We need to make sure the datafile manifest is created and associated with the
+        # instance *before* the serializer is finished, so it's included in the response.
+        # Topography.save() already does this, but we need to ensure the serializer
+        # knows about it.
+        if instance.datafile is not None:
+            # Re-read from database to be absolutely sure all relationships are correct
+            instance.refresh_from_db()
+        else:
+            # Fallback in case save() didn't create it for some reason (e.g. update_fields)
             filename = serializer.validated_data["name"]
             instance.datafile = Manifest.objects.create(
-                permissions=instance.permissions, filename=filename, kind="raw", folder=None
+                permissions=instance.permissions,
+                filename=filename,
+                kind="raw",
+                created_by=instance.created_by,
+                folder=None,
             )
             instance.save()
 

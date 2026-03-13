@@ -5,7 +5,7 @@ from rest_framework.routers import DefaultRouter, SimpleRouter
 import topobank_rest_api.analysis.v1.views as v1
 import topobank_rest_api.analysis.v2.views as v2
 
-from . import workflows
+from topobank.analysis import workflows
 
 router = DefaultRouter() if settings.DEBUG else SimpleRouter()
 router.register(r"api/configuration", v1.ConfigurationView, basename="configuration")

@@ -1,7 +1,7 @@
 from celery.utils.log import get_task_logger
 from rest_framework import serializers
 
-from .models import TaskStateModel
+from topobank.taskapp.models import TaskStateModel
 
 _log = get_task_logger(__name__)
 

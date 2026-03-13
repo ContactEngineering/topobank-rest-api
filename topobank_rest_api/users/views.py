@@ -9,11 +9,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 
-from ..organizations.models import resolve_organization
-from ..organizations.permissions import OrganizationPermission
-from .anonymous import get_anonymous_user
-from .models import User
-from .permissions import UserPermission
+from topobank.organizations.models import resolve_organization
+from topobank.organizations.permissions import OrganizationPermission
+from topobank.users.anonymous import get_anonymous_user
+from topobank.users.models import User
+from topobank.users.permissions import UserPermission
 from .serializers import UserSerializer
 
 
@@ -35,9 +35,12 @@ class UserViewSet(viewsets.ModelViewSet):
         # If we are not the staff user, then only show users of organizations
         # the current user is a member of
         if not self.request.user.is_staff:
+            # We must exclude the 'all' group from the shared membership check,
+            # otherwise everyone can see everyone else.
+            user_groups = self.request.user.groups.exclude(name="all")
             qs = qs.filter(
                 Q(id=self.request.user.id)
-                | Q(groups__in=self.request.user.groups.all())
+                | Q(groups__in=user_groups)
             )
 
         # Filter for name, username, or email

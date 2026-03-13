@@ -7,12 +7,20 @@ from rest_framework.reverse import reverse
 from tagulous.contrib.drf import TagRelatedManagerField
 
 from ...files.serializers import ManifestSerializer
-from ...manager.models import Surface, Tag, Topography
+from topobank.manager.models import Surface, Tag, Topography
 from ...properties.serializers import PropertiesField
-from ...supplib.mixins import StrictFieldMixin
+from topobank.supplib.mixins import StrictFieldMixin
 from ...taskapp.serializers import TaskStateModelSerializer
 
 _log = logging.getLogger(__name__)
+
+
+# Try to import publication serializers if they exist, to register the
+# publication field in TagSerializer
+# try:
+#     import topobank_publication.serializers  # noqa: F401
+# except ImportError:
+#     pass
 
 
 class TagSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):

@@ -163,7 +163,7 @@ def test_add_remove_users(api_client, user_alice, user_staff):
         data=data_dict,
     )
     assert response.status_code == 403, response.content
-    assert user_alice.groups.count() == 0
+    assert user_alice.groups.count() == 1  # Alice starts in 'all' group
 
     # Alice cannot add users
     api_client.force_authenticate(user_alice)
@@ -172,7 +172,7 @@ def test_add_remove_users(api_client, user_alice, user_staff):
         data=data_dict,
     )
     assert response.status_code == 403, response.content
-    assert user_alice.groups.count() == 0
+    assert user_alice.groups.count() == 1
 
     # Staff can add users
     api_client.force_authenticate(user_staff)
@@ -181,7 +181,7 @@ def test_add_remove_users(api_client, user_alice, user_staff):
         data=data_dict,
     )
     assert response.status_code == 200, response.content
-    assert user_alice.groups.count() == 1
+    assert user_alice.groups.count() == 2  # Alice is now in 'all' and organization group
 
     # Alice cannot remove users
     api_client.force_authenticate(user_alice)
@@ -190,7 +190,7 @@ def test_add_remove_users(api_client, user_alice, user_staff):
         data=data_dict,
     )
     assert response.status_code == 403, response.content
-    assert user_alice.groups.count() == 1
+    assert user_alice.groups.count() == 2
 
     # Staff can remove users
     api_client.force_authenticate(user_staff)
@@ -199,4 +199,4 @@ def test_add_remove_users(api_client, user_alice, user_staff):
         data=data_dict,
     )
     assert response.status_code == 200, response.content
-    assert user_alice.groups.count() == 0
+    assert user_alice.groups.count() == 1  # Alice is back in 'all' group

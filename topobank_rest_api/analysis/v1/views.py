@@ -22,10 +22,10 @@ from rest_framework.response import Response
 from topobank.users.models import resolve_user
 
 from ...files.serializers import ManifestSerializer
-from ...manager.models import Surface
-from ...manager.utils import demangle_content_type
-from ..models import Configuration, Workflow, WorkflowResult, WorkflowTemplate
-from ..permissions import WorkflowPermissions
+from topobank.manager.models import Surface
+from topobank.manager.utils import demangle_content_type
+from topobank.analysis.models import Configuration, Workflow, WorkflowResult, WorkflowTemplate
+from topobank.analysis.permissions import WorkflowPermissions
 from ..serializers import (
     ConfigurationSerializer,
     ResultSerializer,
@@ -33,7 +33,7 @@ from ..serializers import (
     WorkflowListSerializer,
     WorkflowTemplateSerializer,
 )
-from ..utils import filter_and_order_analyses, filter_workflow_templates
+from topobank.analysis.utils import filter_and_order_analyses, filter_workflow_templates
 from .controller import AnalysisController
 
 _log = logging.getLogger(__name__)

@@ -13,15 +13,15 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from topobank_rest_api.manager.v2.filters import SurfaceViewFilterSet, TopographyViewFilterSet
+from topobank.manager.v2.filters import SurfaceViewFilterSet, TopographyViewFilterSet
 from topobank.supplib.mixins import UserUpdateMixin
-from topobank_rest_api.supplib.pagination import TopobankPaginator
+from topobank.supplib.pagination import TopobankPaginator
 
-from ...authorization.models import PermissionSet
-from ...authorization.permissions import ObjectPermission, PermissionFilterBackend
-from ...taskapp.utils import run_task
-from ..models import Surface, Topography
-from ..zip_model import ZipContainer
+from topobank.authorization.models import PermissionSet
+from topobank.authorization.permissions import ObjectPermission, PermissionFilterBackend
+from topobank.taskapp.utils import run_task
+from topobank.manager.models import Surface, Topography
+from topobank.manager.zip_model import ZipContainer
 from .serializers import (
     SurfaceV2Serializer,
     TopographyV2CreateSerializer,

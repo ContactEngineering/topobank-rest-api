@@ -3,8 +3,8 @@ import logging
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from ..supplib.mixins import StrictFieldMixin
-from .models import Folder, Manifest
+from topobank.supplib.mixins import StrictFieldMixin
+from topobank.files.models import Folder, Manifest
 
 _log = logging.getLogger(__name__)
 
@@ -71,4 +71,9 @@ class ManifestSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerialize
         }
     )
     def get_upload_instructions(self, obj: Manifest) -> dict | None:
-        return None if obj.exists() else obj.get_upload_instructions()
+        if obj.exists():
+            return None
+        try:
+            return obj.get_upload_instructions()
+        except RuntimeError:
+            return None

@@ -11,8 +11,8 @@ from rest_framework.response import Response
 
 from topobank.authorization.permissions import EDIT, VIEW
 
-from .models import Folder, Manifest
-from .permissions import ManifestPermission
+from topobank.files.models import Folder, Manifest
+from topobank.files.permissions import ManifestPermission
 from .serializers import ManifestSerializer
 
 _log = logging.getLogger(__name__)

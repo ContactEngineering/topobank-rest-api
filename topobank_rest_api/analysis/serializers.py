@@ -4,10 +4,10 @@ from rest_framework.reverse import reverse
 
 import topobank_rest_api.taskapp.serializers
 
-from ..manager.models import Surface, Tag, Topography
-from ..supplib.mixins import StrictFieldMixin
-from ..supplib.serializers import UserField
-from .models import (
+from topobank.manager.models import Surface, Tag, Topography
+from topobank.supplib.mixins import StrictFieldMixin
+from topobank_rest_api.supplib.serializers import UserField
+from topobank.analysis.models import (
     Configuration,
     Workflow,
     WorkflowResult,

@@ -215,14 +215,14 @@ def test_add_remove_organization(api_client, user_alice, user_staff):
             "organizations:organization-v1-detail", kwargs={"pk": org.id}
         )
     }
-
+    
     # Anonymous user cannot add organizations
     response = api_client.post(
         reverse("users:add-organization-v1", kwargs={"pk": user_alice.id}),
         data=data_dict,
     )
     assert response.status_code == 403, response.content
-    assert user_alice.groups.count() == 0
+    assert user_alice.groups.count() == 1  # Alice starts in 'all' group
 
     # Alice cannot add organizations
     api_client.force_authenticate(user_alice)
@@ -231,7 +231,7 @@ def test_add_remove_organization(api_client, user_alice, user_staff):
         data=data_dict,
     )
     assert response.status_code == 403, response.content
-    assert user_alice.groups.count() == 0
+    assert user_alice.groups.count() == 1  # Alice starts in 'all' group
 
     # Staff can add organizations
     api_client.force_authenticate(user_staff)
@@ -240,7 +240,7 @@ def test_add_remove_organization(api_client, user_alice, user_staff):
         data=data_dict,
     )
     assert response.status_code == 200, response.content
-    assert user_alice.groups.count() == 1
+    assert user_alice.groups.count() == 2  # Alice is now in 'all' and organization group
 
     # Alice cannot remove organizations
     api_client.force_authenticate(user_alice)
@@ -249,7 +249,7 @@ def test_add_remove_organization(api_client, user_alice, user_staff):
         data=data_dict,
     )
     assert response.status_code == 403, response.content
-    assert user_alice.groups.count() == 1
+    assert user_alice.groups.count() == 2
 
     # Staff can remove organizations
     api_client.force_authenticate(user_staff)
@@ -258,4 +258,4 @@ def test_add_remove_organization(api_client, user_alice, user_staff):
         data=data_dict,
     )
     assert response.status_code == 200, response.content
-    assert user_alice.groups.count() == 0
+    assert user_alice.groups.count() == 1  # Alice is back in 'all' group

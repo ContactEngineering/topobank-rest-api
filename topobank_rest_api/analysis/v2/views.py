@@ -22,12 +22,12 @@ from topobank.authorization.permissions import ObjectPermission, PermissionFilte
 from topobank.authorization.utils import get_user_available_plugins
 from topobank_rest_api.files.v2.serializers import ManifestV2Serializer
 from topobank.supplib.mixins import UserUpdateMixin
-from topobank_rest_api.supplib.pagination import TopobankPaginator
+from topobank.supplib.pagination import TopobankPaginator
 
-from ..models import Configuration, Workflow, WorkflowResult
-from ..permissions import WorkflowPermissions
+from topobank.analysis.models import Configuration, Workflow, WorkflowResult
+from topobank.analysis.permissions import WorkflowPermissions
 from ..serializers import WorkflowDetailSerializer, WorkflowListSerializer
-from .filters import ResultViewFilterSet, WorkflowViewFilterSet
+from topobank.analysis.v2.filters import ResultViewFilterSet, WorkflowViewFilterSet
 
 
 class ConfigurationView(v1.ConfigurationView):

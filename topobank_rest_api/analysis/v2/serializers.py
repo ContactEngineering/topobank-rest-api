@@ -6,9 +6,9 @@ from rest_framework.reverse import reverse
 
 import topobank_rest_api.taskapp.serializers as taskapp_serializers
 
-from ...manager.models import Surface, Tag, Topography
-from ...supplib.mixins import StrictFieldMixin
-from ...supplib.serializers import (
+from topobank.manager.models import Surface, Tag, Topography
+from topobank.supplib.mixins import StrictFieldMixin
+from topobank_rest_api.supplib.serializers import (
     ModelRelatedField,
     OrganizationField,
     PermissionsField,
@@ -16,7 +16,7 @@ from ...supplib.serializers import (
     SubjectField,
     UserField,
 )
-from ..models import Configuration, WorkflowResult, WorkflowSubject, resolve_workflow
+from topobank.analysis.models import Configuration, WorkflowResult, WorkflowSubject, resolve_workflow
 from ..serializers import WorkflowListSerializer
 
 

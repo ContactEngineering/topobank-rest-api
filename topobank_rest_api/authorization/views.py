@@ -9,9 +9,9 @@ from rest_framework.exceptions import NotFound
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.response import Response
 
-from ..organizations.models import resolve_organization
-from ..users.models import User, resolve_user
-from .models import ACCESS_LEVELS, PermissionSet
+from topobank.organizations.models import resolve_organization
+from topobank.users.models import User, resolve_user
+from topobank.authorization.models import ACCESS_LEVELS, PermissionSet
 from .serializers import (
     GrantOrganizationRequestSerializer,
     GrantUserRequestSerializer,

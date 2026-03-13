@@ -1,4 +1,5 @@
 import pytest
+from django.utils import timezone
 from rest_framework.reverse import reverse
 
 from topobank.analysis.models import Workflow, WorkflowResult
@@ -468,6 +469,14 @@ def test_query_pending(
         f"?subjects={subjects_to_base64([tag])}"
         f"&workflow={test_analysis_function.name}"
     )
+    
+    # We need to ensure the WorkflowResult has a submission time recently,
+    # otherwise get_task_state() might return FAILURE if it thinks the
+    # on_commit hook never triggered.
+    analysis = WorkflowResult.objects.first()
+    analysis.task_submission_time = timezone.now()
+    analysis.save()
+
     response = api_client.get(reverse("analysis:pending"))
     assert len(response.data) == 1
     assert response.data[0]["task_state"] == "pe"

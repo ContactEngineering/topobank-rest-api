@@ -7,10 +7,10 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from topobank.authorization.permissions import EDIT, PermissionFilterBackend
 from topobank.supplib.mixins import UserUpdateMixin
-from topobank_rest_api.supplib.pagination import TopobankPaginator
+from topobank.supplib.pagination import TopobankPaginator
 
-from ..models import Manifest
-from ..permissions import ManifestPermission
+from topobank.files.models import Manifest
+from topobank.files.permissions import ManifestPermission
 from .serializers import ManifestV2CreateSerializer, ManifestV2Serializer
 
 _log = logging.getLogger(__name__)

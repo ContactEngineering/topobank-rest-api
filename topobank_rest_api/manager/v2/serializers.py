@@ -7,8 +7,8 @@ from tagulous.contrib.drf import TagRelatedManagerField
 from topobank.files.models import Manifest
 
 from ...properties.serializers import PropertiesField
-from ...supplib.mixins import StrictFieldMixin
-from ...supplib.serializers import (
+from topobank.supplib.mixins import StrictFieldMixin
+from topobank_rest_api.supplib.serializers import (
     ManifestField,
     ModelRelatedField,
     OrganizationField,
@@ -16,8 +16,8 @@ from ...supplib.serializers import (
     UserField,
 )
 from ...taskapp.serializers import TaskStateModelSerializer
-from ..models import Surface, Topography
-from ..zip_model import ZipContainer
+from topobank.manager.models import Surface, Topography
+from topobank.manager.zip_model import ZipContainer
 
 
 class TopographyV2Serializer(StrictFieldMixin, TaskStateModelSerializer):

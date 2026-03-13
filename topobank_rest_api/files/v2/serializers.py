@@ -5,8 +5,8 @@ from topobank.authorization.models import PermissionSet
 from topobank.authorization.permissions import FULL, VIEW
 from topobank_rest_api.supplib.serializers import ModelRelatedField, UserField
 
-from ...supplib.mixins import StrictFieldMixin
-from ..models import Manifest
+from topobank.supplib.mixins import StrictFieldMixin
+from topobank.files.models import Manifest
 
 
 class ManifestV2Serializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
