@@ -362,3 +362,4 @@ docker/local/django/pip-packages/*
 data/
 .envs/.local/.pypi-authfile
 
+.env
