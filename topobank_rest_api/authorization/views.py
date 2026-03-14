@@ -8,16 +8,15 @@ from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.response import Response
-
+from topobank.authorization.models import ACCESS_LEVELS, PermissionSet
 from topobank.organizations.models import resolve_organization
 from topobank.users.models import User, resolve_user
-from topobank.authorization.models import ACCESS_LEVELS, PermissionSet
+
 from .serializers import (
     GrantOrganizationRequestSerializer,
     GrantUserRequestSerializer,
     OrganizationPermissionSerializer,
     PermissionSetSerializer,
-    PluginSerializer,
     RevokeOrganizationRequestSerializer,
     RevokeUserRequestSerializer,
     SharedPermissionSetSerializer,
@@ -180,23 +179,6 @@ class PermissionSetViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             response_data, context={'request': request}
         )
         return Response(serializer.data)
-
-
-@extend_schema(
-    responses={200: PluginSerializer(many=True)},
-    description="List all plugins available to the current user.",
-    tags=["authorization"],
-)
-@api_view(["GET"])
-@transaction.non_atomic_requests
-def plugins_available(request):
-    from .utils import get_user_available_plugins
-
-    plugin_apps = get_user_available_plugins(request.user)
-    serializer = PluginSerializer(
-        plugin_apps, many=True, context={'request': request}
-    )
-    return Response(serializer.data)
 
 
 @extend_schema(

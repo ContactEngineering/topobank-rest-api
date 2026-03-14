@@ -1,10 +1,8 @@
-from django.conf import settings
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
-
-from topobank.supplib.mixins import StrictFieldMixin
 from topobank.organizations.models import Organization
+from topobank.supplib.mixins import StrictFieldMixin
 
 
 class OrganizationSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
@@ -19,7 +17,6 @@ class OrganizationSerializer(StrictFieldMixin, serializers.HyperlinkedModelSeria
             "api",
             # Model fields
             "name",
-            "plugins_available",
         ]
 
     url = serializers.HyperlinkedIdentityField(
@@ -54,16 +51,3 @@ class OrganizationSerializer(StrictFieldMixin, serializers.HyperlinkedModelSeria
                 request=request,
             ),
         }
-
-    def validate_plugins_available(self, value):
-        """Validate that all plugin names are valid installed plugins."""
-        valid_plugins = set(getattr(settings, 'PLUGIN_MODULES', []))
-        invalid_plugins = set(value) - valid_plugins
-
-        if invalid_plugins:
-            raise serializers.ValidationError(
-                f"Invalid plugin names: {', '.join(sorted(invalid_plugins))}. "
-                f"Available plugins: {', '.join(sorted(valid_plugins))}"
-            )
-
-        return value

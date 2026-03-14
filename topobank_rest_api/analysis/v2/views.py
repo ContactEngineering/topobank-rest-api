@@ -1,16 +1,20 @@
-import operator
-from functools import reduce
-
 from django.db import transaction
-from django.db.models import Q
 from django_filters.rest_framework import backends
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from topobank.analysis.models import Configuration, Workflow, WorkflowResult
+from topobank.analysis.permissions import WorkflowPermissions
+from topobank.authorization.permissions import ObjectPermission, PermissionFilterBackend
+from topobank.supplib.mixins import UserUpdateMixin
 
 import topobank_rest_api.analysis.v1.views as v1
+from topobank_rest_api.analysis.v2.filters import (
+    ResultViewFilterSet,
+    WorkflowViewFilterSet,
+)
 from topobank_rest_api.analysis.v2.serializers import (
     ConfigurationV2Serializer,
     DependencyV2ListSerializer,
@@ -18,16 +22,10 @@ from topobank_rest_api.analysis.v2.serializers import (
     ResultV2DetailSerializer,
     ResultV2ListSerializer,
 )
-from topobank.authorization.permissions import ObjectPermission, PermissionFilterBackend
-from topobank.authorization.utils import get_user_available_plugins
 from topobank_rest_api.files.v2.serializers import ManifestV2Serializer
-from topobank.supplib.mixins import UserUpdateMixin
 from topobank_rest_api.supplib.pagination import TopobankPaginator
 
-from topobank.analysis.models import Configuration, Workflow, WorkflowResult
-from topobank.analysis.permissions import WorkflowPermissions
 from ..serializers import WorkflowDetailSerializer, WorkflowListSerializer
-from topobank_rest_api.analysis.v2.filters import ResultViewFilterSet, WorkflowViewFilterSet
 
 
 class ConfigurationView(v1.ConfigurationView):
@@ -48,38 +46,7 @@ class WorkflowView(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
         return super().get_serializer_class()
 
     def get_queryset(self):
-        queryset = Workflow.objects.all().order_by('name')
-
-        # Filter by available plugins when listing workflows
-        # Workflow names follow the pattern: plugin_name.workflow.version
-        if hasattr(self, 'request') and self.request:
-            user = self.request.user
-
-            # Cache available plugins on the user object for this request
-            if not hasattr(user, '_cached_available_plugins'):
-                user._cached_available_plugins = [
-                    app_config.name for app_config in get_user_available_plugins(user)
-                ]
-            available_plugins = user._cached_available_plugins
-
-            # Always include topobank workflows (e.g., topobank.testing, etc.)
-            # in addition to plugin workflows
-            queries = [Q(name__startswith="topobank.")]
-
-            # Always include topobank workflows (e.g., topobank.testing, etc.)
-            # in addition to plugin workflows
-            queries = [Q(name__startswith="topobank.")]
-
-            if available_plugins:
-                # Add Q objects for each plugin to check if workflow name starts with "plugin."
-                queries.extend([Q(name__startswith=f"{plugin}.") for plugin in available_plugins])
-
-            if queries:
-                queryset = queryset.filter(reduce(operator.or_, queries))
-            else:
-                queryset = queryset.none()
-
-        return queryset
+        return Workflow.objects.all().order_by('name')
 
     def list(self, request, *args, **kwargs):
         """Override list to initialize permission cache for performance"""

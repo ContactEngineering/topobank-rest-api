@@ -1,14 +1,13 @@
-from django.apps import AppConfig
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
-
 from topobank.authorization.models import (
     OrganizationPermission,
     Permissions,
     PermissionSet,
     UserPermission,
 )
+
 from topobank_rest_api.organizations.serializers import OrganizationSerializer
 from topobank_rest_api.supplib.serializers import UserField
 
@@ -190,14 +189,3 @@ class RevokeOrganizationRequestSerializer(serializers.Serializer):
     organization = serializers.CharField(
         help_text="Organization identifier (URL or ID) to revoke access from"
     )
-
-
-class PluginSerializer(serializers.Serializer):
-    """Serializer for plugins"""
-
-    name = serializers.CharField(read_only=True)
-    verbose_name = serializers.CharField(read_only=True)
-    module = serializers.SerializerMethodField()
-
-    def get_module(self, obj: AppConfig) -> str:
-        return obj.module.__name__

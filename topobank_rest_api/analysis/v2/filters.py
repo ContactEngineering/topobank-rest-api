@@ -1,19 +1,9 @@
-from django.apps import apps
-from django.conf import settings
 from django.db.models import Q
 from django_filters.rest_framework import FilterSet, filters
 from drf_spectacular.utils import OpenApiTypes, extend_schema_field
-
 from topobank.analysis.models import Workflow, WorkflowResult
 from topobank.manager.models import Surface, Tag, Topography
 from topobank.taskapp.utils import TASK_STATE_CHOICES
-
-APP_CHOICES = [
-    (app_config.name, app_config.verbose_name)
-    for app_config in apps.get_app_configs()
-    if app_config.name in settings.PLUGIN_MODULES
-    and app_config.name not in getattr(settings, 'EXCLUDED_PLUGIN_CHOICES', [])
-]
 
 
 class WorkflowViewFilterSet(FilterSet):
@@ -23,13 +13,11 @@ class WorkflowViewFilterSet(FilterSet):
     Filters:
     - name: Filter by workflow name (case-insensitive contains)
     - display_name: Filter by display name (case-insensitive contains)
-    - app: Filter by app/plugin name (checks if user has access to plugin)
     - subject_type: Filter by subject type they can process (tag, surface, topography)
     """
 
     name = filters.CharFilter(lookup_expr="icontains")
     display_name = filters.CharFilter(lookup_expr="icontains")
-    app = filters.ChoiceFilter(choices=APP_CHOICES, method="filter_app")
     subject_type = filters.ChoiceFilter(
         method="filter_subject_type",
         choices=[("tag", "Tag"), ("surface", "Surface"), ("topography", "Topography")]
@@ -37,21 +25,7 @@ class WorkflowViewFilterSet(FilterSet):
 
     class Meta:
         model = Workflow
-        fields = ["name", "display_name", "app", "subject_type"]
-
-    def filter_app(self, queryset, name, value):
-        """
-        Filter workflows by app/plugin name.
-
-        Args:
-            queryset: Initial queryset
-            name: Filter field name
-            value: App/plugin name to filter by
-
-        Returns:
-            Filtered queryset or empty queryset if app not found
-        """
-        return queryset.filter(name__icontains=value)
+        fields = ["name", "display_name", "subject_type"]
 
     def filter_subject_type(self, queryset, name, value):
         """
