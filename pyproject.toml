@@ -42,10 +42,12 @@ dependencies = [
 dev = [
     'pytest',
     'pytest-django>=4.4.0',
+    'pytest-env',
     'pytest-mock',
     'pytest-cov',
     'factory-boy',
     'django-test-plus',
+    'django-celery-results',
 ]
 
 [project.urls]
