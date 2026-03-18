@@ -10,9 +10,10 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from topobank.authorization import get_anonymous_user
 from topobank_orcid.organizations.models import resolve_organization
-from topobank_orcid.organizations.permissions import OrganizationPermission
 from topobank_orcid.users.models import User
-from topobank_orcid.users.permissions import UserPermission
+
+from topobank_rest_api.organizations.permissions import OrganizationPermission
+from topobank_rest_api.users.permissions import UserPermission
 
 from .serializers import UserSerializer
 
