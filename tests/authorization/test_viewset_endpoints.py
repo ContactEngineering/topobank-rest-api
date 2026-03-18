@@ -3,8 +3,7 @@ Tests for PermissionSetViewSet endpoint: shared_permissions.
 """
 import pytest
 from rest_framework.reverse import reverse
-
-from topobank.authorization.models import PermissionSet
+from topobank_orcid.authorization.models import PermissionSet
 
 
 @pytest.mark.django_db

@@ -8,9 +8,10 @@ from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.response import Response
-from topobank.authorization.models import ACCESS_LEVELS, PermissionSet
-from topobank.organizations.models import resolve_organization
-from topobank.users.models import User, resolve_user
+from topobank.authorization import get_permission_model
+from topobank.authorization.models import ACCESS_LEVELS
+from topobank_orcid.organizations.models import resolve_organization
+from topobank_orcid.users.models import User, resolve_user
 
 from .serializers import (
     GrantOrganizationRequestSerializer,
@@ -36,7 +37,7 @@ class PermissionSetPermission(BasePermission):
 
         return True
 
-    def has_object_permission(self, request, view, obj: PermissionSet):
+    def has_object_permission(self, request, view, obj):
         if not request.user or request.user.is_anonymous:
             return False
         elif request.method in SAFE_METHODS:
@@ -46,7 +47,8 @@ class PermissionSetPermission(BasePermission):
 
 
 class PermissionSetViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
-    queryset = PermissionSet.objects.all()
+    def get_queryset(self):
+        return get_permission_model().objects.all()
     serializer_class = PermissionSetSerializer
     permission_classes = [PermissionSetPermission]
 
@@ -93,7 +95,7 @@ class PermissionSetViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
         # Verify all permission sets exist and are accessible
         # Use prefetch_related to optimize queries
-        user_sets = PermissionSet.objects.for_user(request.user).filter(
+        user_sets = get_permission_model().objects.for_user(request.user).filter(
             id__in=requested_ids
         ).prefetch_related(
             'user_permissions__user',
@@ -198,7 +200,7 @@ class PermissionSetViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 @api_view(["POST"])
 @transaction.atomic
 def grant_user(request, id: int):
-    permission_set = get_object_or_404(PermissionSet, pk=id)
+    permission_set = get_object_or_404(get_permission_model(), pk=id)
     # The user needs 'full' permission to modify permissions
     permission_set.authorize_user(request.user, "full")
 
@@ -238,7 +240,7 @@ def grant_user(request, id: int):
 @api_view(["POST"])
 @transaction.atomic
 def revoke_user(request, id: int):
-    permission_set = get_object_or_404(PermissionSet, pk=id)
+    permission_set = get_object_or_404(get_permission_model(), pk=id)
     # The user needs 'full' permission to modify permissions
     permission_set.authorize_user(request.user, "full")
 
@@ -268,7 +270,7 @@ def revoke_user(request, id: int):
 @api_view(["POST"])
 @transaction.atomic
 def grant_organization(request, id: int):
-    permission_set = get_object_or_404(PermissionSet, pk=id)
+    permission_set = get_object_or_404(get_permission_model(), pk=id)
     # The user needs 'full' permission to modify permissions
     permission_set.authorize_user(request.user, "full")
 
@@ -308,7 +310,7 @@ def grant_organization(request, id: int):
 @api_view(["POST"])
 @transaction.atomic
 def revoke_organization(request, id: int):
-    permission_set = get_object_or_404(PermissionSet, pk=id)
+    permission_set = get_object_or_404(get_permission_model(), pk=id)
     # The user needs 'full' permission to modify permissions
     permission_set.authorize_user(request.user, "full")
 

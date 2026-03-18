@@ -3,10 +3,9 @@ from pathlib import Path
 import pytest
 from django.contrib.auth.models import Permission
 from django.urls import reverse
-
-from topobank.authorization.models import PermissionSet
 from topobank.manager.models import Surface, Topography
 from topobank.testing.data import FIXTURE_DATA_DIR
+from topobank_orcid.authorization.models import PermissionSet
 
 
 @pytest.mark.django_db

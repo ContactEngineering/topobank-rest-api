@@ -1,8 +1,7 @@
 import pytest
 from rest_framework.reverse import reverse
-
-from topobank.organizations.models import Organization
 from topobank.testing.factories import OrganizationFactory
+from topobank_orcid.organizations.models import Organization
 
 
 @pytest.mark.django_db

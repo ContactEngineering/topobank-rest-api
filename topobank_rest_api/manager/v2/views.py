@@ -12,16 +12,19 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.request import Request
 from rest_framework.response import Response
-
-from topobank_rest_api.manager.v2.filters import SurfaceViewFilterSet, TopographyViewFilterSet
-from topobank.supplib.mixins import UserUpdateMixin
-from topobank_rest_api.supplib.pagination import TopobankPaginator
-
-from topobank.authorization.models import PermissionSet
+from topobank.authorization import get_permission_model
 from topobank.authorization.permissions import ObjectPermission, PermissionFilterBackend
-from topobank.taskapp.utils import run_task
 from topobank.manager.models import Surface, Topography
 from topobank.manager.zip_model import ZipContainer
+from topobank.supplib.mixins import UserUpdateMixin
+from topobank.taskapp.utils import run_task
+
+from topobank_rest_api.manager.v2.filters import (
+    SurfaceViewFilterSet,
+    TopographyViewFilterSet,
+)
+from topobank_rest_api.supplib.pagination import TopobankPaginator
+
 from .serializers import (
     SurfaceV2Serializer,
     TopographyV2CreateSerializer,
@@ -389,7 +392,7 @@ def download_surface(request: Request, surface_ids: str):
     # Create ZIP container and dispatch task within transaction
     with transaction.atomic():
         zip_container = ZipContainer.objects.create(
-            permissions=PermissionSet.objects.create(user=request.user, allow="view")
+            permissions=get_permission_model().objects.create(user=request.user, allow="view")
         )
         run_task(zip_container, surface_ids=surface_ids)
         zip_container.save()
@@ -408,7 +411,7 @@ def download_tag(request: Request, name: str):
     # Create ZIP container and dispatch task within transaction
     with transaction.atomic():
         zip_container = ZipContainer.objects.create(
-            permissions=PermissionSet.objects.create(user=request.user, allow="view")
+            permissions=get_permission_model().objects.create(user=request.user, allow="view")
         )
         run_task(zip_container, tag_name=name)
         zip_container.save()
@@ -428,7 +431,7 @@ def upload_zip_start(request: Request):
     # Create a ZIP container object within transaction
     with transaction.atomic():
         zip_container = ZipContainer.objects.create(
-            permissions=PermissionSet.objects.create(user=request.user, allow="full")
+            permissions=get_permission_model().objects.create(user=request.user, allow="full")
         )
 
         # Create an empty manifest

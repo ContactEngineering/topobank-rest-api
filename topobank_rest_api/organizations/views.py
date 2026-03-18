@@ -5,12 +5,12 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from topobank_orcid.organizations.models import Organization
+from topobank_orcid.organizations.permissions import OrganizationPermission
+from topobank_orcid.users.models import resolve_user
 
 from topobank_rest_api.supplib.pagination import TopobankPaginator
 
-from topobank.users.models import resolve_user
-from topobank.organizations.models import Organization
-from topobank.organizations.permissions import OrganizationPermission
 from .serializers import OrganizationSerializer
 
 

@@ -3,7 +3,6 @@ import logging
 import os.path
 from io import BytesIO
 
-from topobank_rest_api.utils import get_api_url
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Case, F, Q, When
@@ -22,19 +21,21 @@ from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
 )
 from rest_framework.response import Response
-
 from topobank.authorization.permissions import ObjectPermission
 from topobank.files.models import Manifest
-from topobank.organizations.models import resolve_organization
-from topobank.supplib.mixins import UserUpdateMixin
-from topobank.supplib.versions import get_versions
-from topobank.taskapp.utils import run_task
-from topobank.users.models import User, resolve_user
 from topobank.manager.export_zip import export_container_zip
-from topobank_rest_api.manager.filters import filter_surfaces
 from topobank.manager.models import Surface, Tag, Topography
 from topobank.manager.permissions import TagPermission
 from topobank.manager.tasks import import_container_from_url
+from topobank.supplib.mixins import UserUpdateMixin
+from topobank.supplib.versions import get_versions
+from topobank.taskapp.utils import run_task
+from topobank_orcid.organizations.models import resolve_organization
+from topobank_orcid.users.models import User, resolve_user
+
+from topobank_rest_api.manager.filters import filter_surfaces
+from topobank_rest_api.utils import get_api_url
+
 from ..v1.serializers import SurfaceSerializer, TagSerializer, TopographySerializer
 
 _log = logging.getLogger(__name__)

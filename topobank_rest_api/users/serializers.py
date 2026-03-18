@@ -2,9 +2,8 @@ from allauth.account.utils import has_verified_email
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
-
 from topobank.supplib.mixins import StrictFieldMixin
-from topobank.users.models import ORCIDException, User
+from topobank_orcid.users.models import ORCIDException, User
 
 
 class UserSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):

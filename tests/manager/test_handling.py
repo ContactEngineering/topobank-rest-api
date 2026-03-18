@@ -7,8 +7,6 @@ from django.core.files.storage import default_storage
 from django.shortcuts import reverse
 from django.utils.text import slugify
 from pytest import approx
-
-from topobank.authorization.models import PermissionSet
 from topobank.files.models import Folder, Manifest
 from topobank.manager.models import MAX_LENGTH_DATAFILE_FORMAT, Surface, Topography
 from topobank.testing.factories import (
@@ -19,6 +17,8 @@ from topobank.testing.factories import (
     Topography2DFactory,
     UserFactory,
 )
+from topobank_orcid.authorization.models import PermissionSet
+
 from tests.utils import upload_file, upload_topography_file
 
 filelist = [

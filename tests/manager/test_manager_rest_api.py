@@ -1,10 +1,9 @@
 import json
 
 import numpy
-from topobank_rest_api.utils import get_api_url
 import pytest
 from rest_framework.reverse import reverse
-
+from topobank.authorization import get_anonymous_user
 from topobank.manager.models import Surface, Topography
 from topobank.testing.factories import SurfaceFactory, TagFactory
 from topobank.testing.utils import (
@@ -12,7 +11,8 @@ from topobank.testing.utils import (
     assert_dict_equal,
     assert_dicts_equal,
 )
-from topobank.users.anonymous import get_anonymous_user
+
+from topobank_rest_api.utils import get_api_url
 
 
 @pytest.mark.django_db

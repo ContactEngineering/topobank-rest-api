@@ -18,15 +18,21 @@ from rest_framework.decorators import api_view
 from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
-
-from topobank.users.models import resolve_user
-
-from ...files.serializers import ManifestSerializer
+from topobank.analysis.models import (
+    Configuration,
+    Workflow,
+    WorkflowResult,
+    WorkflowTemplate,
+)
+from topobank.analysis.permissions import WorkflowPermissions
+from topobank.analysis.utils import filter_and_order_analyses, filter_workflow_templates
 from topobank.manager.models import Surface
 from topobank.manager.utils import demangle_content_type
-from topobank.analysis.models import Configuration, Workflow, WorkflowResult, WorkflowTemplate
+from topobank_orcid.users.models import resolve_user
+
 from topobank_rest_api.utils import get_api_url
-from topobank.analysis.permissions import WorkflowPermissions
+
+from ...files.serializers import ManifestSerializer
 from ..serializers import (
     ConfigurationSerializer,
     ResultSerializer,
@@ -34,7 +40,6 @@ from ..serializers import (
     WorkflowListSerializer,
     WorkflowTemplateSerializer,
 )
-from topobank.analysis.utils import filter_and_order_analyses, filter_workflow_templates
 from .controller import AnalysisController
 
 _log = logging.getLogger(__name__)

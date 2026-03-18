@@ -1,9 +1,9 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
-from topobank.authorization.models import (
+from topobank.authorization.models import Permissions
+from topobank_orcid.authorization.models import (
     OrganizationPermission,
-    Permissions,
     PermissionSet,
     UserPermission,
 )

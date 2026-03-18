@@ -1,6 +1,6 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-from topobank.authorization.models import PermissionSet
+from topobank.authorization import get_permission_model
 from topobank.authorization.permissions import FULL, VIEW
 from topobank.files.models import Manifest
 from topobank.supplib.mixins import StrictFieldMixin
@@ -99,7 +99,7 @@ class ManifestV2CreateSerializer(StrictFieldMixin, serializers.HyperlinkedModelS
             # Create new permissios set
             # TODO: consider allowing permissions object to be passed in request
             # so it can be tied to surface/topography
-            validated_data['permissions'] = PermissionSet.objects.create()
+            validated_data['permissions'] = get_permission_model().objects.create()
             validated_data['permissions'].grant(
                 self.context['request'].user, FULL
             )
