@@ -3,11 +3,16 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.reverse import reverse
+from topobank.analysis.models import (
+    Configuration,
+    WorkflowResult,
+    WorkflowSubject,
+    resolve_workflow,
+)
+from topobank.manager.models import Surface, Tag, Topography
 
 import topobank_rest_api.taskapp.serializers as taskapp_serializers
-
-from topobank.manager.models import Surface, Tag, Topography
-from topobank.supplib.mixins import StrictFieldMixin
+from topobank_rest_api.supplib.mixins import StrictFieldMixin
 from topobank_rest_api.supplib.serializers import (
     ModelRelatedField,
     OrganizationField,
@@ -16,7 +21,7 @@ from topobank_rest_api.supplib.serializers import (
     SubjectField,
     UserField,
 )
-from topobank.analysis.models import Configuration, WorkflowResult, WorkflowSubject, resolve_workflow
+
 from ..serializers import WorkflowListSerializer
 
 

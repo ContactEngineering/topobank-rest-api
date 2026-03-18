@@ -1,12 +1,6 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
-
-import topobank_rest_api.taskapp.serializers
-
-from topobank.manager.models import Surface, Tag, Topography
-from topobank.supplib.mixins import StrictFieldMixin
-from topobank_rest_api.supplib.serializers import UserField
 from topobank.analysis.models import (
     Configuration,
     Workflow,
@@ -14,6 +8,11 @@ from topobank.analysis.models import (
     WorkflowSubject,
     WorkflowTemplate,
 )
+from topobank.manager.models import Surface, Tag, Topography
+
+import topobank_rest_api.taskapp.serializers
+from topobank_rest_api.supplib.mixins import StrictFieldMixin
+from topobank_rest_api.supplib.serializers import UserField
 
 
 class ConfigurationSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):

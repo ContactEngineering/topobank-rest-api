@@ -1,10 +1,10 @@
 import pytest
 from django.urls import reverse
 from rest_framework import serializers, status
-
 from topobank.analysis.models import WorkflowResult
-from topobank.supplib.mixins import StrictFieldMixin
 from topobank.testing.factories import SurfaceFactory
+
+from topobank_rest_api.supplib.mixins import StrictFieldMixin
 
 # ============================================================================
 # Test StrictFieldMixin

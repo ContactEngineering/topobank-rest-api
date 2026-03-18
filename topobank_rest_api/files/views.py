@@ -8,11 +8,11 @@ from rest_framework import mixins, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
-
-from topobank.authorization.permissions import EDIT, VIEW
-
+from topobank.authorization.models import EDIT, VIEW
 from topobank.files.models import Folder, Manifest
-from topobank.files.permissions import ManifestPermission
+
+from topobank_rest_api.files.permissions import ManifestPermission
+
 from .serializers import ManifestSerializer
 
 _log = logging.getLogger(__name__)

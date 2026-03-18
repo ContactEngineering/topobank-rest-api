@@ -24,12 +24,12 @@ from topobank.analysis.models import (
     WorkflowResult,
     WorkflowTemplate,
 )
-from topobank.analysis.permissions import WorkflowPermissions
 from topobank.analysis.utils import filter_and_order_analyses, filter_workflow_templates
 from topobank.manager.models import Surface
 from topobank.manager.utils import demangle_content_type
 from topobank_orcid.users.models import resolve_user
 
+from topobank_rest_api.analysis.permissions import WorkflowPermissions
 from topobank_rest_api.utils import get_api_url
 
 from ...files.serializers import ManifestSerializer

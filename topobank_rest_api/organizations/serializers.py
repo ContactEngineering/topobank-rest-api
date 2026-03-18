@@ -1,8 +1,9 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
-from topobank.supplib.mixins import StrictFieldMixin
 from topobank_orcid.organizations.models import Organization
+
+from topobank_rest_api.supplib.mixins import StrictFieldMixin
 
 
 class OrganizationSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):

@@ -1,4 +1,3 @@
-from topobank_rest_api.utils import get_api_url
 import logging
 
 import pydantic
@@ -6,11 +5,13 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 from tagulous.contrib.drf import TagRelatedManagerField
+from topobank.manager.models import Surface, Tag, Topography
+
+from topobank_rest_api.supplib.mixins import StrictFieldMixin
+from topobank_rest_api.utils import get_api_url
 
 from ...files.serializers import ManifestSerializer
-from topobank.manager.models import Surface, Tag, Topography
 from ...properties.serializers import PropertiesField
-from topobank.supplib.mixins import StrictFieldMixin
 from ...taskapp.serializers import TaskStateModelSerializer
 
 _log = logging.getLogger(__name__)

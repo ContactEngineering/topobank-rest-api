@@ -3,8 +3,8 @@ import logging
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from topobank.files.models import Folder, Manifest
-from topobank.supplib.mixins import StrictFieldMixin
 
+from topobank_rest_api.supplib.mixins import StrictFieldMixin
 from topobank_rest_api.utils import (
     get_upload_instructions as get_upload_instructions_api,
 )

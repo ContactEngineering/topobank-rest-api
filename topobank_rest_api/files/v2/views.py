@@ -4,13 +4,14 @@ from django.db import transaction
 from django_filters.rest_framework import backends
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from topobank.authorization.models import EDIT
+from topobank.files.models import Manifest
 
-from topobank.authorization.permissions import EDIT, PermissionFilterBackend
-from topobank.supplib.mixins import UserUpdateMixin
+from topobank_rest_api.authorization.permissions import PermissionFilterBackend
+from topobank_rest_api.files.permissions import ManifestPermission
+from topobank_rest_api.supplib.mixins import UserUpdateMixin
 from topobank_rest_api.supplib.pagination import TopobankPaginator
 
-from topobank.files.models import Manifest
-from topobank.files.permissions import ManifestPermission
 from .serializers import ManifestV2CreateSerializer, ManifestV2Serializer
 
 _log = logging.getLogger(__name__)

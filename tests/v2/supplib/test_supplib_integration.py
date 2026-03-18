@@ -1,14 +1,14 @@
 import pytest
 from rest_framework.request import Request
-
 from topobank.manager.models import Surface
-from topobank.supplib.mixins import StrictFieldMixin
+from topobank.testing.factories import SurfaceFactory
+
+from topobank_rest_api.supplib.mixins import StrictFieldMixin
 from topobank_rest_api.supplib.serializers import (
     DynamicFieldsModelSerializer,
     PermissionsField,
     UserField,
 )
-from topobank.testing.factories import SurfaceFactory
 
 # ============================================================================
 # Integration Tests - Combining Mixins/Serializers

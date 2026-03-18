@@ -3,11 +3,11 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 from tagulous.contrib.drf import TagRelatedManagerField
-
 from topobank.files.models import Manifest
+from topobank.manager.models import Surface, Topography
+from topobank.manager.zip_model import ZipContainer
 
-from ...properties.serializers import PropertiesField
-from topobank.supplib.mixins import StrictFieldMixin
+from topobank_rest_api.supplib.mixins import StrictFieldMixin
 from topobank_rest_api.supplib.serializers import (
     ManifestField,
     ModelRelatedField,
@@ -15,9 +15,9 @@ from topobank_rest_api.supplib.serializers import (
     PermissionsField,
     UserField,
 )
+
+from ...properties.serializers import PropertiesField
 from ...taskapp.serializers import TaskStateModelSerializer
-from topobank.manager.models import Surface, Topography
-from topobank.manager.zip_model import ZipContainer
 
 
 class TopographyV2Serializer(StrictFieldMixin, TaskStateModelSerializer):

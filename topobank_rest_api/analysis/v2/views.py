@@ -6,11 +6,9 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from topobank.analysis.models import Configuration, Workflow, WorkflowResult
-from topobank.analysis.permissions import WorkflowPermissions
-from topobank.authorization.permissions import ObjectPermission, PermissionFilterBackend
-from topobank.supplib.mixins import UserUpdateMixin
 
 import topobank_rest_api.analysis.v1.views as v1
+from topobank_rest_api.analysis.permissions import WorkflowPermissions
 from topobank_rest_api.analysis.v2.filters import (
     ResultViewFilterSet,
     WorkflowViewFilterSet,
@@ -22,7 +20,12 @@ from topobank_rest_api.analysis.v2.serializers import (
     ResultV2DetailSerializer,
     ResultV2ListSerializer,
 )
+from topobank_rest_api.authorization.permissions import (
+    ObjectPermission,
+    PermissionFilterBackend,
+)
 from topobank_rest_api.files.v2.serializers import ManifestV2Serializer
+from topobank_rest_api.supplib.mixins import UserUpdateMixin
 from topobank_rest_api.supplib.pagination import TopobankPaginator
 
 from ..serializers import WorkflowDetailSerializer, WorkflowListSerializer
