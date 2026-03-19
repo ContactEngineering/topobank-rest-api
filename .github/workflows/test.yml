@@ -89,4 +89,4 @@ jobs:
         pip install git+https://github.com/ContactEngineering/topobank.git git+https://github.com/ContactEngineering/topobank-orcid.git -e .[dev]
 
     - name: Test
-      run: PYTHONPATH="/tmp/topobank" pytest -s -v -rsx
+      run: pytest -s -v -rsx
