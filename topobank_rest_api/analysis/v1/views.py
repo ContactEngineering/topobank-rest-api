@@ -67,20 +67,17 @@ class WorkflowView(viewsets.ReadOnlyModelViewSet):
         return super().get_serializer_class()
 
     def get_queryset(self):
-        # We need to filter the queryset to exclude functions in the list view
-        user = self.request.user
         subject_type = self.request.query_params.get("subject_type", None)
         if subject_type is None:
-            ids = [f.id for f in Workflow.objects.all() if f.has_permission(user)]
+            return Workflow.objects.all()
         else:
             subject_class = demangle_content_type(subject_type)
             ids = [
                 f.id
                 for f in Workflow.objects.all()
-                if f.has_permission(user)
-                and f.implementation.has_implementation(subject_class.model_class())
+                if f.implementation.has_implementation(subject_class.model_class())
             ]
-        return Workflow.objects.filter(pk__in=ids)
+            return Workflow.objects.filter(pk__in=ids)
 
 
 @extend_schema_view(
@@ -742,13 +739,7 @@ class WorkflowTemplateView(viewsets.ModelViewSet):
         """
         Get the queryset for the workflow templates.
         """
-        workflows = [
-            workflow.id
-            for workflow in Workflow.objects.all()
-            if workflow.has_permission(self.request.user)
-        ]
-        qs = WorkflowTemplate.objects.filter(implementation__in=workflows)
-
+        qs = WorkflowTemplate.objects.all()
         return filter_workflow_templates(self.request, qs)
 
     def perform_create(self, serializer):

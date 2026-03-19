@@ -2,8 +2,6 @@ import logging
 from collections import defaultdict
 from functools import reduce
 
-from rest_framework.exceptions import PermissionDenied
-
 from topobank.manager.utils import dict_from_base64
 from topobank.analysis.models import WorkflowTemplate
 from topobank.analysis.utils import merge_dicts
@@ -52,11 +50,6 @@ class AnalysisController(CoreAnalysisController):
             kwargs=kwargs,
             with_children=with_children,
         )
-
-        if not self._workflow.has_permission(user):
-            raise PermissionDenied(
-                f"User {self._user} does not have access to this workflow."
-            )
 
     @staticmethod
     def get_request_parameter(names, data, multiple=False):
