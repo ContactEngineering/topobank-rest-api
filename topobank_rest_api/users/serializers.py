@@ -1,8 +1,8 @@
 from allauth.account.utils import has_verified_email
+from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
-from topobank_orcid.users.models import ORCIDException, User
 
 from topobank_rest_api.supplib.mixins import StrictFieldMixin
 
@@ -10,7 +10,7 @@ from topobank_rest_api.supplib.mixins import StrictFieldMixin
 class UserSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
     """Serializer for User model."""
     class Meta:
-        model = User
+        model = get_user_model()
         fields = [
             # Self
             "url",
@@ -46,7 +46,7 @@ class UserSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
             "required": ["organizations", "add_organization", "remove_organization"],
         }
     )
-    def get_api(self, obj: User) -> dict:
+    def get_api(self, obj) -> dict:
         request = self.context["request"]
         return {
             "organizations": reverse(
@@ -65,11 +65,11 @@ class UserSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
             ),
         }
 
-    def get_orcid(self, obj: User) -> str:
+    def get_orcid(self, obj) -> str:
         try:
             return obj.orcid_id
-        except ORCIDException:
+        except Exception:
             return None
 
-    def get_is_verified(self, obj: User) -> bool:
+    def get_is_verified(self, obj) -> bool:
         return has_verified_email(obj)

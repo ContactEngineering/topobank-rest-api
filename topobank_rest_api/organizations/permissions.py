@@ -1,5 +1,5 @@
 from rest_framework.permissions import SAFE_METHODS, BasePermission
-from topobank_orcid.organizations.models import Organization
+from topobank.authorization import get_organization_model
 
 
 class OrganizationPermission(BasePermission):
@@ -25,6 +25,6 @@ class OrganizationPermission(BasePermission):
             return True
 
         if request.method in SAFE_METHODS:
-            return obj in Organization.objects.for_user(request.user)
+            return obj in get_organization_model().objects.for_user(request.user)
 
         return False

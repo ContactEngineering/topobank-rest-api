@@ -3,6 +3,7 @@ from collections import defaultdict
 
 import pydantic
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Case, F, Max, Sum, Value, When
 from django.http import HttpResponseBadRequest, HttpResponseForbidden
@@ -27,7 +28,6 @@ from topobank.analysis.models import (
 from topobank.analysis.utils import filter_and_order_analyses, filter_workflow_templates
 from topobank.manager.models import Surface
 from topobank.manager.utils import demangle_content_type
-from topobank_orcid.users.models import resolve_user
 
 from topobank_rest_api.analysis.permissions import WorkflowPermissions
 from topobank_rest_api.utils import get_api_url
@@ -707,7 +707,7 @@ def set_result_permissions(request, workflow_id=None):
         return HttpResponseForbidden()
 
     for permission in request.data:
-        other_user = resolve_user(permission["user"])
+        other_user = get_user_model().resolve(permission["user"])
         if other_user == user:
             if permission["permission"] == "no-access":
                 return Response(
@@ -717,7 +717,7 @@ def set_result_permissions(request, workflow_id=None):
 
     # Everything looks okay, update permissions
     for permission in request.data:
-        other_user = resolve_user(permission["user"])
+        other_user = get_user_model().resolve(permission["user"])
         if other_user != user:
             perm = permission["permission"]
             if perm == "no-access":

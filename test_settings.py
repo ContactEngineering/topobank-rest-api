@@ -43,6 +43,7 @@ DATABASES = {
 AUTH_USER_MODEL = "users.User"
 TOPOBANK_PERMISSION_MODEL = "authorization.PermissionSet"
 TOPOBANK_ORGANIZATION_MODEL = "organizations.Organization"
+TOPOBANK_ANONYMOUS_USER_GETTER = "topobank_orcid.users.anonymous.get_anonymous_user"
 SITE_ID = 1
 USE_TZ = True
 TIME_ZONE = "CET"
@@ -62,7 +63,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    "topobank.middleware.anonymous_user_middleware",
+    "topobank_orcid.users.middleware.anonymous_user_middleware",
 ]
 
 STATIC_URL = '/static/'

@@ -1,4 +1,5 @@
 from allauth.utils import generate_unique_username
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseForbidden
@@ -8,9 +9,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
-from topobank.authorization import get_anonymous_user
-from topobank_orcid.organizations.models import resolve_organization
-from topobank_orcid.users.models import User
+from topobank.authorization import get_anonymous_user, get_organization_model
 
 from topobank_rest_api.organizations.permissions import OrganizationPermission
 from topobank_rest_api.users.permissions import UserPermission
@@ -25,13 +24,13 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:
-            return User.objects.none()
+            return get_user_model().objects.none()
 
         name = self.request.query_params.get("name")
         organization = self.request.query_params.get("organization")
 
         # We don't want the anonymous user
-        qs = User.objects.exclude(id=get_anonymous_user().id)
+        qs = get_user_model().objects.exclude(id=get_anonymous_user().id)
 
         # If we are not the staff user, then only show users of organizations
         # the current user is a member of
@@ -85,9 +84,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 def get_user_and_organization(request, pk):
-    user = get_object_or_404(User, pk=pk)
+    user = get_object_or_404(get_user_model(), pk=pk)
     organization_url = request.data.get("organization")
-    organization = resolve_organization(organization_url)
+    organization = get_organization_model().resolve(organization_url)
     return user, organization
 
 

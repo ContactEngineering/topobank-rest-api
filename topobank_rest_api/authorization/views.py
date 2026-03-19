@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -8,10 +9,8 @@ from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.response import Response
-from topobank.authorization import get_permission_model
+from topobank.authorization import get_organization_model, get_permission_model
 from topobank.authorization.models import ACCESS_LEVELS
-from topobank_orcid.organizations.models import resolve_organization
-from topobank_orcid.users.models import User, resolve_user
 
 from .serializers import (
     GrantOrganizationRequestSerializer,
@@ -156,7 +155,7 @@ class PermissionSetViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 }
 
         # Bulk fetch all users in a single query
-        users = {u.id: u for u in User.objects.filter(id__in=user_ids_to_perm_info.keys())}
+        users = {u.id: u for u in get_user_model().objects.filter(id__in=user_ids_to_perm_info.keys())}
 
         # Build result data
         user_permissions_data = []
@@ -208,7 +207,7 @@ def grant_user(request, id: int):
     serializer = GrantUserRequestSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    user = resolve_user(serializer.validated_data["user"])
+    user = get_user_model().resolve(serializer.validated_data["user"])
     allow = serializer.validated_data["allow"]
     if allow == "no-access":
         permission_set.revoke_from_user(user)
@@ -248,7 +247,7 @@ def revoke_user(request, id: int):
     serializer = RevokeUserRequestSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    user = resolve_user(serializer.validated_data["user"])
+    user = get_user_model().resolve(serializer.validated_data["user"])
     permission_set.revoke_from_user(user)
     return Response({}, status=status.HTTP_204_NO_CONTENT)
 
@@ -278,7 +277,7 @@ def grant_organization(request, id: int):
     serializer = GrantOrganizationRequestSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    organization = resolve_organization(serializer.validated_data["organization"])
+    organization = get_organization_model().resolve(serializer.validated_data["organization"])
     allow = serializer.validated_data["allow"]
     if allow == "no-access":
         permission_set.revoke_from_organization(organization)
@@ -318,6 +317,6 @@ def revoke_organization(request, id: int):
     serializer = RevokeOrganizationRequestSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    organization = resolve_organization(serializer.validated_data["organization"])
+    organization = get_organization_model().resolve(serializer.validated_data["organization"])
     permission_set.revoke_from_organization(organization)
     return Response({}, status=status.HTTP_204_NO_CONTENT)

@@ -1,7 +1,7 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
-from topobank_orcid.organizations.models import Organization
+from topobank.authorization import get_organization_model
 
 from topobank_rest_api.supplib.mixins import StrictFieldMixin
 
@@ -9,7 +9,7 @@ from topobank_rest_api.supplib.mixins import StrictFieldMixin
 class OrganizationSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
     """Serializer for Organization model."""
     class Meta:
-        model = Organization
+        model = get_organization_model()
         fields = [
             # Self
             "url",
@@ -36,7 +36,7 @@ class OrganizationSerializer(StrictFieldMixin, serializers.HyperlinkedModelSeria
             "required": ["users", "add_user", "remove_user"],
         }
     )
-    def get_api(self, obj: Organization) -> dict:
+    def get_api(self, obj) -> dict:
         request = self.context["request"]
         return {
             "users": reverse("users:user-v1-list", request=request)

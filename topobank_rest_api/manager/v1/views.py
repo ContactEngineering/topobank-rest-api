@@ -4,6 +4,7 @@ import os.path
 from io import BytesIO
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Case, F, Q, When
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
@@ -21,14 +22,13 @@ from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
 )
 from rest_framework.response import Response
+from topobank.authorization import get_organization_model
 from topobank.files.models import Manifest
 from topobank.manager.export_zip import export_container_zip
 from topobank.manager.models import Surface, Tag, Topography
 from topobank.manager.tasks import import_container_from_url
 from topobank.supplib.versions import get_versions
 from topobank.taskapp.utils import run_task
-from topobank_orcid.organizations.models import resolve_organization
-from topobank_orcid.users.models import User, resolve_user
 
 from topobank_rest_api.authorization.permissions import ObjectPermission
 from topobank_rest_api.manager.filters import filter_surfaces
@@ -400,7 +400,7 @@ def set_surface_permissions(request, pk=None):
     # Check that the request does not ask to revoke permissions from the current user
     for permission in request.data:
         if "user" in permission:
-            other_user = resolve_user(permission["user"])
+            other_user = get_user_model().resolve(permission["user"])
             if other_user == logged_in_user:
                 if permission["permission"] != "full":
                     return Response(
@@ -416,14 +416,14 @@ def set_surface_permissions(request, pk=None):
         if perm is None:
             return HttpResponseBadRequest(reason="Permission was not provided")
         if "user" in permission:
-            other_user = resolve_user(permission["user"])
+            other_user = get_user_model().resolve(permission["user"])
             if other_user != logged_in_user:
                 if perm == "no-access":
                     obj.revoke_permission(other_user)
                 else:
                     obj.grant_permission(other_user, perm)
         elif "organization" in permission:
-            organization = resolve_organization(permission["organization"])
+            organization = get_organization_model().resolve(permission["organization"])
             if perm == "no-access":
                 obj.revoke_permission(organization)
             else:
@@ -447,7 +447,7 @@ def set_tag_permissions(request, name=None):
 
     # Check that the request does not ask to revoke permissions from the current user
     for permission in request.data:
-        user = resolve_user(permission["user"])
+        user = get_user_model().resolve(permission["user"])
         if user == logged_in_user:
             if permission["permission"] != "full":
                 return Response(
@@ -472,7 +472,7 @@ def set_tag_permissions(request, name=None):
                     return HttpResponseBadRequest(reason="Permission was not provided")
 
                 if "user" in permission:
-                    other_user = resolve_user(permission["user"])
+                    other_user = get_user_model().resolve(permission["user"])
                     if other_user != logged_in_user:
                         perm = permission["permission"]
                         if perm == "no-access":
@@ -480,7 +480,7 @@ def set_tag_permissions(request, name=None):
                         else:
                             surface.grant_permission(other_user, perm)
                 elif "organization" in permission:
-                    organization = resolve_organization(permission["organization"])
+                    organization = get_organization_model().resolve(permission["organization"])
                     if perm == "no-access":
                         surface.revoke_permission(organization)
                     else:
@@ -553,7 +553,7 @@ def versions(request):
 def statistics(request):
     # Global statistics
     stats = {
-        "nb_users": User.objects.count()
+        "nb_users": get_user_model().objects.count()
         - 1,  # -1 because we don't count the anonymous user
         "nb_surfaces": Surface.objects.count(),
         "nb_topographies": Topography.objects.count(),

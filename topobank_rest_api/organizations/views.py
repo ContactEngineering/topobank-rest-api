@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
@@ -5,8 +6,7 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from topobank_orcid.organizations.models import Organization
-from topobank_orcid.users.models import resolve_user
+from topobank.authorization import get_organization_model
 
 from topobank_rest_api.organizations.permissions import OrganizationPermission
 from topobank_rest_api.supplib.pagination import TopobankPaginator
@@ -21,16 +21,16 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:
-            return Organization.objects.none()
+            return get_organization_model().objects.none()
 
         user = self.request.query_params.get("user", None)
 
         if self.request.user.is_staff:
             # Staff users can see all organizations
-            qs = Organization.objects.all()
+            qs = get_organization_model().objects.all()
         else:
             # Normal users can only see organizations they are member of
-            qs = Organization.objects.filter(
+            qs = get_organization_model().objects.filter(
                 group__in=self.request.user.groups.all()
             )
 
@@ -55,9 +55,9 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
 
 def get_user_and_organization(request, pk):
-    organization = get_object_or_404(Organization, pk=pk)
+    organization = get_object_or_404(get_organization_model(), pk=pk)
     user_url = request.data.get("user")
-    user = resolve_user(user_url)
+    user = get_user_model().resolve(user_url)
     return user, organization
 
 

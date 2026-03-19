@@ -1,28 +1,33 @@
+from django.apps import apps
+from django.conf import settings
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
+from topobank.authorization import get_permission_model, get_user_permission_model
 from topobank.authorization.models import Permissions
-from topobank_orcid.authorization.models import (
-    OrganizationPermission,
-    PermissionSet,
-    UserPermission,
-)
 
 from topobank_rest_api.organizations.serializers import OrganizationSerializer
 from topobank_rest_api.supplib.serializers import UserField
+
+
+def get_organization_permission_model():
+    return apps.get_model(
+        getattr(settings, 'TOPOBANK_ORGANIZATION_PERMISSION_MODEL', 'authorization.OrganizationPermission'),
+        require_ready=False
+    )
 
 
 class UserPermissionSerializer(serializers.ModelSerializer):
     """Serializer for user permissions"""
 
     class Meta:
-        model = UserPermission
+        model = get_user_permission_model()
         fields = ("id", "user", "allow", "is_current_user")
 
     user = UserField(read_only=True)
     is_current_user = serializers.SerializerMethodField()
 
-    def get_is_current_user(self, obj: UserPermission) -> bool:
+    def get_is_current_user(self, obj) -> bool:
         return self.context["request"].user == obj.user
 
 
@@ -30,7 +35,7 @@ class OrganizationPermissionSerializer(serializers.ModelSerializer):
     """Serializer for organization permissions"""
 
     class Meta:
-        model = OrganizationPermission
+        model = get_organization_permission_model()
         fields = ("id", "organization", "allow")
 
     organization = OrganizationSerializer(read_only=True)
@@ -40,7 +45,7 @@ class PermissionSetSerializer(serializers.ModelSerializer):
     """Serializer for permission sets"""
 
     class Meta:
-        model = PermissionSet
+        model = get_permission_model()
         fields = ("id", "url", "user_permissions", "organization_permissions", "api")
 
     url = serializers.HyperlinkedIdentityField(
@@ -69,7 +74,7 @@ class PermissionSetSerializer(serializers.ModelSerializer):
             ],
         }
     )
-    def get_api(self, obj: PermissionSet) -> dict:
+    def get_api(self, obj) -> dict:
         request = self.context["request"]
         return {
             "grant_user_access": reverse(
