@@ -9,7 +9,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from topobank.authorization.models import EDIT, VIEW
-from topobank.files.models import Folder, Manifest
+from topobank.files.models import ManifestSet, Manifest
 
 from topobank_rest_api.files.permissions import ManifestPermission
 
@@ -111,7 +111,7 @@ def upload_local(request, manifest_id: int):
 @transaction.non_atomic_requests
 def list_manifests(request, pk=None):
     """List all manifests in a folder"""
-    obj = get_object_or_404(Folder.objects.for_user(request.user, VIEW), pk=pk)
+    obj = get_object_or_404(ManifestSet.objects.for_user(request.user, VIEW), pk=pk)
     return Response({
         manifest.filename: ManifestSerializer(manifest,
                                               context={"request": request}).data

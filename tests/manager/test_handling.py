@@ -7,7 +7,7 @@ from django.core.files.storage import default_storage
 from django.shortcuts import reverse
 from django.utils.text import slugify
 from pytest import approx
-from topobank.files.models import Folder, Manifest
+from topobank.files.models import ManifestSet, Manifest
 from topobank.manager.models import MAX_LENGTH_DATAFILE_FORMAT, Surface, Topography
 from topobank.testing.factories import (
     FIXTURE_DATA_DIR,
