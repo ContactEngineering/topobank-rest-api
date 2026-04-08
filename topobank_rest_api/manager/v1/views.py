@@ -196,7 +196,6 @@ class TopographyViewSet(
                 filename=filename,
                 kind="raw",
                 created_by=instance.created_by,
-                folder=None,
             )
             instance.save()
 

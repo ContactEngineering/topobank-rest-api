@@ -25,10 +25,10 @@ def test_upload_file(api_client, user_alice, user_bob):
     manifest = Manifest.objects.create(
         filename=name,
         permissions=permissions,
-        folder=folder,
         created_by=user_alice,
         kind="raw",
     )
+    manifest.folders.add(folder)
 
     # File belongs to alice, log in as bob
     api_client.force_login(user_bob)
@@ -75,16 +75,16 @@ def test_delete_file(api_client, user_alice, read_only, handle_usage_statistics)
     folder = ManifestSet.objects.create(permissions=permissions, read_only=read_only)
     manifest1 = Manifest.objects.create(
         permissions=permissions,
-        folder=folder,
         filename="dektak-1.csv",
         file=File(open(f"{FIXTURE_DATA_DIR}/dektak-1.csv", "rb")),
     )
-    Manifest.objects.create(
+    manifest1.folders.add(folder)
+    m2 = Manifest.objects.create(
         permissions=permissions,
-        folder=folder,
         filename="dummy.txt",
         file=File(open(f"{FIXTURE_DATA_DIR}/dummy.txt", "rb")),
     )
+    m2.folders.add(folder)
 
     # Try deleting file1 - no permission
     response = api_client.delete(
@@ -124,16 +124,16 @@ def test_modify_file(
     folder = ManifestSet.objects.create(permissions=permissions, read_only=read_only)
     manifest1 = Manifest.objects.create(
         permissions=permissions,
-        folder=folder,
         filename="dektak-1.csv",
         file=File(open(f"{FIXTURE_DATA_DIR}/dektak-1.csv", "rb")),
     )
-    Manifest.objects.create(
+    manifest1.folders.add(folder)
+    m2 = Manifest.objects.create(
         permissions=permissions,
-        folder=folder,
         filename="dummy.txt",
         file=File(open(f"{FIXTURE_DATA_DIR}/dummy.txt", "rb")),
     )
+    m2.folders.add(folder)
 
     # We should not be able to see the manifest when not logged in
     response = api_client.get(
