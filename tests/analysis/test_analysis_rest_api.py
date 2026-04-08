@@ -132,6 +132,33 @@ def test_query_with_partial_kwargs(api_client, one_line_scan, test_analysis_func
 
 
 @pytest.mark.django_db
+def test_retrieve_legacy_and_muflow_workflows(api_client, user_alice):
+    from topobank.analysis.registry import sync_implementation_classes
+    sync_implementation_classes()
+    api_client.force_login(user_alice)
+
+    # v2 workflow list endpoint
+    response = api_client.get(reverse('analysis:workflow-list'))
+    assert response.status_code == 200
+
+    # Extract names from pagination if used, or direct list
+    if 'results' in response.data:
+        names = [w['name'] for w in response.data['results']]
+    else:
+        names = [w['name'] for w in response.data]
+
+    assert "topobank.testing.test" in names, "Legacy workflow not retrieved"
+
+    try:
+        from muflow import registry as muflow_registry
+        muflow_names = list(muflow_registry.get_all())
+        if muflow_names:
+            assert muflow_names[0] in names, "muFlow workflow not retrieved"
+    except ImportError:
+        pass
+
+
+@pytest.mark.django_db
 def test_function_info(api_client, user_alice, handle_usage_statistics):
     api_client.force_login(user_alice)
 

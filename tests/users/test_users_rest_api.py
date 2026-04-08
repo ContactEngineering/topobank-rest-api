@@ -3,7 +3,7 @@ from rest_framework.reverse import reverse
 from topobank.manager.custodian import periodic_cleanup
 from topobank.manager.models import Topography
 from topobank.testing.factories import OrganizationFactory
-from topobank_orcid.users.models import User
+from topobank.testing.mock_auth.users.models import User
 
 from topobank_rest_api.utils import get_api_url
 

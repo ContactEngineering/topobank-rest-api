@@ -38,8 +38,8 @@ class FileManifestViewSet(
                     self.request,
                     message="This folder is read-only.",
                 )
-            serializer.save(permissions=folder.permissions, folder=folder,
-                            created_by=self.request.user)
+            manifest = serializer.save(permissions=folder.permissions, created_by=self.request.user)
+            manifest.folders.add(folder)
         else:
             self.permission_denied(
                 self.request,
