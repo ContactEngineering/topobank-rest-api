@@ -40,13 +40,18 @@ INSTALLED_APPS = [
 ]
 
 DATABASES = {
-    "default": env.db("DATABASE_URL", default="postgres://topobank:topobankpassword@localhost:5432/topobank-test")
+    "default": env.db(
+        "DATABASE_URL",
+        default="postgres://topobank:topobankpassword@localhost:5432/topobank-test"
+    )
 }
 
 AUTH_USER_MODEL = "users.User"
 TOPOBANK_PERMISSION_MODEL = "authorization.PermissionSet"
 TOPOBANK_ORGANIZATION_MODEL = "organizations.Organization"
-TOPOBANK_ANONYMOUS_USER_GETTER = "topobank.testing.mock_auth.users.anonymous.get_anonymous_user"
+TOPOBANK_ANONYMOUS_USER_GETTER = (
+    "topobank.testing.mock_auth.users.anonymous.get_anonymous_user"
+)
 SITE_ID = 1
 USE_TZ = True
 TIME_ZONE = "CET"
@@ -76,7 +81,9 @@ os.makedirs(os.path.join(MEDIA_ROOT, 'analyses'), exist_ok=True)
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+    },
 }
 
 REST_FRAMEWORK = {
@@ -92,7 +99,9 @@ REST_FRAMEWORK = {
 CC_LICENSE_INFOS = {
     "cc0-1.0": {
         "description_url": "https://creativecommons.org/publicdomain/zero/1.0/",
-        "legal_code_url": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+        "legal_code_url": (
+            "https://creativecommons.org/publicdomain/zero/1.0/legalcode"
+        ),
         "title": "CC0 1.0 Universal",
         "option_name": "CC0 1.0 (Public Domain Dedication)",
         "spdx_identifier": "CC0-1.0",
@@ -106,8 +115,13 @@ CC_LICENSE_INFOS = {
     },
     "ccbysa-4.0": {
         "description_url": "https://creativecommons.org/licenses/by-sa/4.0/",
-        "legal_code_url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
-        "title": "Creative Commons Attribution-ShareAlike 4.0 International Public License",
+        "legal_code_url": (
+            "https://creativecommons.org/licenses/by-sa/4.0/legalcode"
+        ),
+        "title": (
+            "Creative Commons Attribution-ShareAlike 4.0 International "
+            "Public License"
+        ),
         "option_name": "CC BY-SA 4.0",
         "spdx_identifier": "CC-BY-SA-4.0",
     },
@@ -121,8 +135,15 @@ MIN_SECONDS_BETWEEN_SAME_SURFACE_PUBLICATIONS = 600
 PUBLICATION_ENABLED = True
 PUBLICATION_DOI_STATE_INFOS = {
     "draft": {"description": "only visible in Fabrica, DOI can be deleted"},
-    "registered": {"description": "registered with the DOI Resolver, cannot be deleted"},
-    "findable": {"description": "registered with the DOI Resolver and indexed in DataCite Search, cannot be deleted"},
+    "registered": {
+        "description": "registered with the DOI Resolver, cannot be deleted"
+    },
+    "findable": {
+        "description": (
+            "registered with the DOI Resolver and indexed in DataCite Search, "
+            "cannot be deleted"
+        )
+    },
 }
 PUBLICATION_URL_PREFIX = "https://contact.engineering/go/"
 PUBLICATION_DOI_MANDATORY = False

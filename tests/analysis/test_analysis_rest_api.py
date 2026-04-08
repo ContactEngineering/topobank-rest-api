@@ -140,15 +140,15 @@ def test_retrieve_legacy_and_muflow_workflows(api_client, user_alice):
     # v2 workflow list endpoint
     response = api_client.get(reverse('analysis:workflow-list'))
     assert response.status_code == 200
-    
+
     # Extract names from pagination if used, or direct list
     if 'results' in response.data:
         names = [w['name'] for w in response.data['results']]
     else:
         names = [w['name'] for w in response.data]
-        
+
     assert "topobank.testing.test" in names, "Legacy workflow not retrieved"
-    
+
     try:
         from muflow import registry as muflow_registry
         muflow_names = list(muflow_registry.get_all())
