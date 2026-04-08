@@ -75,7 +75,7 @@ class WorkflowView(viewsets.ReadOnlyModelViewSet):
             ids = [
                 f.id
                 for f in Workflow.objects.all()
-                if f.implementation.has_implementation(subject_class.model_class())
+                if f.has_implementation(subject_class.model_class())
             ]
             return Workflow.objects.filter(pk__in=ids)
 

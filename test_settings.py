@@ -25,25 +25,28 @@ INSTALLED_APPS = [
     "notifications",
     "tagulous",
     "django_celery_results",
-    "topobank_orcid.users.apps.UsersAppConfig",
-    "topobank_orcid.authorization.apps.AuthorizationAppConfig",
+    "topobank.testing.mock_auth.users.apps.UsersAppConfig",
+    "topobank.testing.mock_auth.authorization.apps.AuthorizationAppConfig",
+    "sds_api.users.apps.UsersAppConfig",
+    "sds_api.authorization.apps.AuthorizationAppConfig",
     "topobank.files.apps.FilesAppConfig",
     "topobank.manager.apps.ManagerAppConfig",
     "topobank.analysis.apps.AnalysisAppConfig",
-    "topobank_orcid.organizations.apps.OrganizationsAppConfig",
+    "topobank.testing.mock_auth.organizations.apps.OrganizationsAppConfig",
+    "sds_api.organizations.apps.OrganizationsAppConfig",
     "topobank.properties.apps.PropertiesAppConfig",
     "topobank.taskapp.celeryapp.CeleryAppConfig",
     "topobank_rest_api.apps.TopobankRestApiConfig",
 ]
 
 DATABASES = {
-    "default": env.db("DATABASE_URL", default="postgres://postgres@localhost/topobank-test")
+    "default": env.db("DATABASE_URL", default="postgres://topobank:topobankpassword@localhost:5432/topobank-test")
 }
 
 AUTH_USER_MODEL = "users.User"
 TOPOBANK_PERMISSION_MODEL = "authorization.PermissionSet"
 TOPOBANK_ORGANIZATION_MODEL = "organizations.Organization"
-TOPOBANK_ANONYMOUS_USER_GETTER = "topobank_orcid.users.anonymous.get_anonymous_user"
+TOPOBANK_ANONYMOUS_USER_GETTER = "topobank.testing.mock_auth.users.anonymous.get_anonymous_user"
 SITE_ID = 1
 USE_TZ = True
 TIME_ZONE = "CET"
@@ -63,7 +66,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    "topobank_orcid.users.middleware.anonymous_user_middleware",
+    "topobank.testing.mock_auth.users.middleware.anonymous_user_middleware",
 ]
 
 STATIC_URL = '/static/'
@@ -131,6 +134,7 @@ PUBLICATION_MAX_NUM_AFFILIATIONS_PER_AUTHOR = 20
 USE_S3_STORAGE = False
 
 UPLOAD_METHOD = "POST"
+DELETE_EXISTING_FILES = True
 BOKEH_OUTPUT_BACKEND = "canvas"
 WEBAPP_URL = "http://localhost:5173/"
 
