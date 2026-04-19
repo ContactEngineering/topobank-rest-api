@@ -6,6 +6,13 @@ from topobank.files.models import Manifest
 
 from topobank_rest_api.supplib.mixins import StrictFieldMixin
 from topobank_rest_api.supplib.serializers import ModelRelatedField, UserField
+
+
+class SingleFolderRelatedField(ModelRelatedField):
+    """ModelRelatedField that presents M2M folders as a single folder."""
+
+    def get_attribute(self, instance):
+        return instance.folders.first()
 from topobank_rest_api.utils import (
     get_upload_instructions as get_upload_instructions_api,
 )
@@ -42,7 +49,7 @@ class ManifestV2Serializer(StrictFieldMixin, serializers.HyperlinkedModelSeriali
     #
     # Hyperlinked resources
     #
-    folder = ModelRelatedField(
+    folder = SingleFolderRelatedField(
         view_name="files:folder-api-detail", read_only=True
     )
     created_by = UserField(read_only=True)
@@ -87,7 +94,7 @@ class ManifestV2CreateSerializer(StrictFieldMixin, serializers.HyperlinkedModelS
 
     def create(self, validated_data):
         # Get folder if specified
-        folder = validated_data.get("folder", None)
+        folder = validated_data.pop("folder", None)
 
         # UserUpdateMixin will set created_by and updated_by
         _ = validated_data.pop("owned_by")  # Ignored as Manifest doesnt have owned_by
@@ -107,6 +114,8 @@ class ManifestV2CreateSerializer(StrictFieldMixin, serializers.HyperlinkedModelS
         instance = Manifest.objects.create(
             **validated_data
         )
+        if folder is not None:
+            instance.folders.add(folder)
         return instance
 
     def validate_folder(self, value):
