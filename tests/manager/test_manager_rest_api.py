@@ -7,6 +7,7 @@ from topobank.authorization import get_anonymous_user
 from topobank.manager.models import Surface, Topography
 from topobank.testing.factories import SurfaceFactory, TagFactory
 from topobank.testing.utils import (
+    drf_isoformat,
     ASSERT_EQUAL_IGNORE_VALUE,
     assert_dict_equal,
     assert_dicts_equal,
@@ -57,8 +58,8 @@ def test_surface_retrieve_routes(
             "download": ASSERT_EQUAL_IGNORE_VALUE,
             "async_download": ASSERT_EQUAL_IGNORE_VALUE,
         },
-        "creation_datetime": surface1.created_at.astimezone().isoformat(),
-        "modification_datetime": surface1.updated_at.astimezone().isoformat(),
+        "creation_datetime": drf_isoformat(surface1.created_at),
+        "modification_datetime": drf_isoformat(surface1.updated_at),
         "attachments": get_api_url(surface1.attachments, response.wsgi_request),
         "topographies": f"{topography_api_list_url}?surface={surface1.id}",
         "properties": {},
@@ -113,8 +114,8 @@ def test_surface_retrieve_routes(
             "channel_names": [],
             "data_source": 0,
             "is_metadata_complete": True,
-            "creation_datetime": topo1.created_at.astimezone().isoformat(),
-            "modification_datetime": topo1.updated_at.astimezone().isoformat(),
+            "creation_datetime": drf_isoformat(topo1.created_at),
+            "modification_datetime": drf_isoformat(topo1.updated_at),
             "permissions": ASSERT_EQUAL_IGNORE_VALUE,
         }
     ]
@@ -131,8 +132,8 @@ def test_surface_retrieve_routes(
             "download": ASSERT_EQUAL_IGNORE_VALUE,
             "async_download": ASSERT_EQUAL_IGNORE_VALUE,
         },
-        "creation_datetime": surface2.created_at.astimezone().isoformat(),
-        "modification_datetime": surface2.updated_at.astimezone().isoformat(),
+        "creation_datetime": drf_isoformat(surface2.created_at),
+        "modification_datetime": drf_isoformat(surface2.updated_at),
         "attachments": get_api_url(surface2.attachments, response.wsgi_request),
         "topographies": f"{topography_api_list_url}?surface={surface2.id}",
         "properties": {},
@@ -187,8 +188,8 @@ def test_surface_retrieve_routes(
             "channel_names": [],
             "data_source": 0,
             "is_metadata_complete": True,
-            "creation_datetime": topo2.created_at.astimezone().isoformat(),
-            "modification_datetime": topo2.updated_at.astimezone().isoformat(),
+            "creation_datetime": drf_isoformat(topo2.created_at),
+            "modification_datetime": drf_isoformat(topo2.updated_at),
             "permissions": ASSERT_EQUAL_IGNORE_VALUE,
         }
     ]
@@ -308,8 +309,8 @@ def test_topography_retrieve_routes(
             ["Phase", None],
             ["Height", "nm"],
         ],
-        "creation_datetime": topo1.created_at.astimezone().isoformat(),
-        "modification_datetime": topo1.updated_at.astimezone().isoformat(),
+        "creation_datetime": drf_isoformat(topo1.created_at),
+        "modification_datetime": drf_isoformat(topo1.updated_at),
         "attachments": get_api_url(topo1.attachments, response.wsgi_request),
         "deepzoom": ASSERT_EQUAL_IGNORE_VALUE,
         "datafile": ASSERT_EQUAL_IGNORE_VALUE,
@@ -363,8 +364,8 @@ def test_topography_retrieve_routes(
         "task_duration": None,
         "data_source": 0,
         "channel_names": [],
-        "creation_datetime": topo2.created_at.astimezone().isoformat(),
-        "modification_datetime": topo2.updated_at.astimezone().isoformat(),
+        "creation_datetime": drf_isoformat(topo2.created_at),
+        "modification_datetime": drf_isoformat(topo2.updated_at),
         "attachments": get_api_url(topo2.attachments, response.wsgi_request),
         "deepzoom": ASSERT_EQUAL_IGNORE_VALUE,
         "datafile": ASSERT_EQUAL_IGNORE_VALUE,
@@ -384,7 +385,7 @@ def test_topography_retrieve_routes(
         # topo1 is updated but the get command, because it is triggering file inspection
         topo1 = Topography.objects.get(pk=topo1.id)
         topo1_dict["modification_datetime"] = (
-            topo1.updated_at.astimezone().isoformat()
+            drf_isoformat(topo1.updated_at)
         )
         assert_dict_equal(data, topo1_dict)
     else:
@@ -400,7 +401,7 @@ def test_topography_retrieve_routes(
         # topo2 is updated but the get command, because it is triggering file inspection
         topo2 = Topography.objects.get(pk=topo2.id)
         topo2_dict["modification_datetime"] = (
-            topo2.updated_at.astimezone().isoformat()
+            drf_isoformat(topo2.updated_at)
         )
         assert_dict_equal(data, topo2_dict)
     else:
@@ -802,8 +803,8 @@ def test_tag_retrieve_routes(api_client, two_users, handle_usage_statistics):
         "creator": get_api_url(surface2.created_by, response.wsgi_request),
         "description": "",
         "tags": [st.name],
-        "creation_datetime": surface3.created_at.astimezone().isoformat(),
-        "modification_datetime": surface3.updated_at.astimezone().isoformat(),
+        "creation_datetime": drf_isoformat(surface3.created_at),
+        "modification_datetime": drf_isoformat(surface3.updated_at),
         "attachments": get_api_url(surface3.attachments, response.wsgi_request),
         "topographies": f"{topography_api_list_url}?surface={surface3.id}",
         "properties": {},
@@ -826,8 +827,8 @@ def test_tag_retrieve_routes(api_client, two_users, handle_usage_statistics):
         "creator": get_api_url(surface2.created_by, response.wsgi_request),
         "description": "",
         "tags": [st.name],
-        "creation_datetime": surface2.created_at.astimezone().isoformat(),
-        "modification_datetime": surface2.updated_at.astimezone().isoformat(),
+        "creation_datetime": drf_isoformat(surface2.created_at),
+        "modification_datetime": drf_isoformat(surface2.updated_at),
         "attachments": get_api_url(surface2.attachments, response.wsgi_request),
         "topographies": f"{topography_api_list_url}?surface={surface2.id}",
         "properties": {},

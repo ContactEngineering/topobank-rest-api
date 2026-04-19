@@ -4,7 +4,7 @@ from django.db import transaction
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, serializers, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
@@ -41,10 +41,8 @@ class FileManifestViewSet(
             manifest = serializer.save(permissions=folder.permissions, created_by=self.request.user)
             manifest.folders.add(folder)
         else:
-            self.permission_denied(
-                self.request,
-                message="A new file manifest cannot be created without specifying a "
-                        "folder.",
+            raise serializers.ValidationError(
+                "A new file manifest cannot be created without specifying a folder."
             )
 
     @transaction.atomic

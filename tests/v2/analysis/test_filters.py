@@ -142,11 +142,10 @@ def test_result_list_filtered(api_client, user_alice,
     response = api_client.get(url, {"subject_type": "topography"})
     assert response.status_code == status.HTTP_200_OK
     results = response.data["results"]
-    # topo_analysis_success is a named analysis, so it no longer has a subject
-    # and won't be returned by the subject_type filter
-    assert response.data["count"] == 2
+    # Named analyses retain their subject_dispatch, so topo_analysis_success is still included
+    assert response.data["count"] == 3
     for result in results:
-        assert result["id"] in [topo_analysis_failure.id, another_topo_analysis.id]
+        assert result["id"] in [topo_analysis_failure.id, another_topo_analysis.id, topo_analysis_success.id]
         assert result["subject"]["type"] == "topography"
 
     # Filter by workflow (function) name
@@ -193,10 +192,11 @@ def test_result_list_filtered(api_client, user_alice,
     response = api_client.get(url, {"subject_id": one_line_scan.id, "subject_type": "topography"})
     assert response.status_code == status.HTTP_200_OK
     results = response.data["results"]
-    # Note: topo_analysis_success is named so has no subject
-    assert response.data["count"] == 1
-    assert results[0]["subject"]["type"] == "topography"
-    assert results[0]["id"] == topo_analysis_failure.id
+    # Named analyses retain their subject_dispatch, so both topo analyses on one_line_scan are returned
+    assert response.data["count"] == 2
+    assert {topo_analysis_failure.id, topo_analysis_success.id} == {r["id"] for r in results}
+    for result in results:
+        assert result["subject"]["type"] == "topography"
 
     # Filter by subject_id + subject_type for surface
     # Since a topography and a surface can have the same ID, this tests that filtering works correctly

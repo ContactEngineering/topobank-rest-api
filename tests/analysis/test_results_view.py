@@ -55,7 +55,7 @@ def test_analysis_times(
 
     analyses = response.data["analyses"]
     assert len(analyses) == 1
-    assert analyses[0]["task_start_time"] == "2018-01-01T12:00:00+01:00"
+    assert analyses[0]["task_start_time"] == "2018-01-01T12:00:00Z"
     assert analyses[0]["task_duration"] == "01:01:01"
 
 
@@ -146,8 +146,8 @@ def test_show_only_last_analysis(
 
     analyses = response.data["analyses"]
     assert len(analyses) == 2
-    assert analyses[0]["task_start_time"] == "2018-01-02T12:00:00+01:00"
-    assert analyses[1]["task_start_time"] == "2018-01-04T12:00:00+01:00"
+    assert analyses[0]["task_start_time"] == "2018-01-02T12:00:00Z"
+    assert analyses[1]["task_start_time"] == "2018-01-04T12:00:00Z"
 
 
 @pytest.mark.django_db
@@ -417,7 +417,7 @@ def test_set_result_permissions(
     obj.save()
 
     obj = WorkflowResult.objects.get(id=analysis1.id)
-    assert obj.subject is None  # After being named, subject is removed
+    assert obj.subject == surf1  # Named results retain their subject_dispatch
 
     # # check user2 cannot view model
     api_client.force_login(user2)

@@ -7,7 +7,7 @@ from topobank.files.models import ManifestSet, Manifest
 from topobank.files.utils import file_storage_path
 from topobank.testing.data import FIXTURE_DATA_DIR
 from topobank.testing.factories import ManifestSetFactory, ManifestFactory
-from topobank.testing.utils import assert_dict_equal
+from topobank.testing.utils import assert_dict_equal, drf_isoformat
 from topobank.testing.mock_auth.authorization.models import PermissionSet, UserPermission
 
 from tests.utils import upload_file
@@ -260,6 +260,7 @@ def test_create_file(api_client, user_alice, read_only, handle_usage_statistics)
     assert Manifest.objects.count() == (0 if read_only else 1)
 
 
+@pytest.mark.django_db
 def test_list_folder(api_client, user_alice):
     folder = ManifestSetFactory(user=user_alice)
     manifest1 = ManifestFactory(folder=folder)
@@ -284,10 +285,10 @@ def test_list_folder(api_client, user_alice):
                 "filename": manifest1.filename,
                 "folder": f"http://testserver/files/folder/{folder.id}/",
                 "kind": "N/A",
-                "created": manifest1.created_at.astimezone().isoformat(),
-                "updated": manifest1.updated_at.astimezone().isoformat(),
+                "created": drf_isoformat(manifest1.created_at),
+                "updated": drf_isoformat(manifest1.updated_at),
                 "uploaded_by": None,
-                "upload_confirmed": manifest1.confirmed_at.astimezone().isoformat(),
+                "upload_confirmed": drf_isoformat(manifest1.confirmed_at),
                 "upload_instructions": None,
             },
             manifest2.filename: {
@@ -296,10 +297,10 @@ def test_list_folder(api_client, user_alice):
                 "filename": manifest2.filename,
                 "folder": f"http://testserver/files/folder/{folder.id}/",
                 "kind": "N/A",
-                "created": manifest2.created_at.astimezone().isoformat(),
-                "updated": manifest2.updated_at.astimezone().isoformat(),
+                "created": drf_isoformat(manifest2.created_at),
+                "updated": drf_isoformat(manifest2.updated_at),
                 "uploaded_by": None,
-                "upload_confirmed": manifest2.confirmed_at.astimezone().isoformat(),
+                "upload_confirmed": drf_isoformat(manifest2.confirmed_at),
                 "upload_instructions": None,
             },
         },
