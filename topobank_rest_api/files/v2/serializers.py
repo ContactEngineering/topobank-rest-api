@@ -6,6 +6,9 @@ from topobank.files.models import Manifest
 
 from topobank_rest_api.supplib.mixins import StrictFieldMixin
 from topobank_rest_api.supplib.serializers import ModelRelatedField, UserField
+from topobank_rest_api.utils import (
+    get_upload_instructions as get_upload_instructions_api,
+)
 
 
 class SingleFolderRelatedField(ModelRelatedField):
@@ -13,13 +16,11 @@ class SingleFolderRelatedField(ModelRelatedField):
 
     def get_attribute(self, instance):
         return instance.folders.first()
-from topobank_rest_api.utils import (
-    get_upload_instructions as get_upload_instructions_api,
-)
 
 
 class ManifestV2Serializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
     """Serializer for Manifest model."""
+
     class Meta:
         model = Manifest
         read_only_fields = [
@@ -80,17 +81,17 @@ class ManifestV2Serializer(StrictFieldMixin, serializers.HyperlinkedModelSeriali
         return None if obj.exists() else get_upload_instructions_api(obj)
 
 
-class ManifestV2CreateSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
+class ManifestV2CreateSerializer(
+    StrictFieldMixin, serializers.HyperlinkedModelSerializer
+):
     """Serializer for creating Manifest model instances."""
+
     class Meta:
         model = Manifest
         required_fields = [
             "filename",
         ]
-        fields = required_fields + [
-            "folder",
-            "kind"
-        ]
+        fields = required_fields + ["folder", "kind"]
 
     def create(self, validated_data):
         # Get folder if specified
@@ -101,19 +102,15 @@ class ManifestV2CreateSerializer(StrictFieldMixin, serializers.HyperlinkedModelS
 
         if folder is not None:
             # Set permissions based on folder if it exists
-            validated_data['permissions'] = folder.permissions
+            validated_data["permissions"] = folder.permissions
         else:
             # Create new permissios set
             # TODO: consider allowing permissions object to be passed in request
             # so it can be tied to surface/topography
-            validated_data['permissions'] = get_permission_model().objects.create()
-            validated_data['permissions'].grant(
-                self.context['request'].user, FULL
-            )
+            validated_data["permissions"] = get_permission_model().objects.create()
+            validated_data["permissions"].grant(self.context["request"].user, FULL)
 
-        instance = Manifest.objects.create(
-            **validated_data
-        )
+        instance = Manifest.objects.create(**validated_data)
         if folder is not None:
             instance.folders.add(folder)
         return instance
@@ -121,7 +118,7 @@ class ManifestV2CreateSerializer(StrictFieldMixin, serializers.HyperlinkedModelS
     def validate_folder(self, value):
         if value is not None:
             # Check permissions
-            if not value.has_permission(self.context['request'].user, VIEW):
+            if not value.has_permission(self.context["request"].user, VIEW):
                 raise serializers.ValidationError(
                     "Folder does not exist or you lack permission to access it."
                 )
