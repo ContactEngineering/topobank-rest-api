@@ -86,7 +86,7 @@ class ResultV2CreateSerializer(serializers.ModelSerializer):
             # NOTE: WorkflowResult model save method handles setting permissions
             # and creating its folder
             instance = WorkflowResult.objects.create(
-                function=workflow,
+                workflow_name=workflow.name,
                 subject_dispatch=subject_dispatch,
                 kwargs=validated_data.get("kwargs", {}),
                 task_state=WorkflowResult.NOTRUN,
@@ -409,7 +409,6 @@ class DependencyV2ListSerializer(serializers.BaseSerializer):
         workflow_results = WorkflowResult.objects.filter(
             id__in=workflow_result_ids
         ).select_related(
-            'function',
             'subject_dispatch',
             'subject_dispatch__tag',
             'subject_dispatch__topography',
@@ -430,7 +429,7 @@ class DependencyV2ListSerializer(serializers.BaseSerializer):
                         ),
                         "task_state": dep_wr.task_state,
                         "task_error": dep_wr.task_error,
-                        "function": dep_wr.function.display_name,
+                        "function": dep_wr.workflow_name,
                         "subject": dep_wr.subject.name,
                     }
                 )

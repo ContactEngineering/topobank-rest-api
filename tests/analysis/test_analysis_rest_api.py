@@ -1,7 +1,6 @@
 import pytest
 from django.utils import timezone
 from rest_framework.reverse import reverse
-
 from topobank.analysis.models import Workflow, WorkflowResult
 from topobank.manager.models import Tag
 from topobank.manager.utils import dict_to_base64, subjects_to_base64
@@ -23,24 +22,24 @@ def test_statistics(api_client, user_staff, handle_usage_statistics):
     topo1b = Topography1DFactory(surface=surf1)
     topo2a = Topography1DFactory(surface=surf2)
 
-    func = Workflow.objects.get(name="topobank.testing.test")
+    func = Workflow(name="topobank.testing.test")
 
     #
     # Generate analyses for topographies with differing arguments
     #
     kwargs_1a = dict(a=1, b="abc")
     kwargs_1b = dict(a=1, b="def")  # differing from kwargs_1a!
-    AnalysisFactory(subject_topography=topo1a, function=func, kwargs=kwargs_1a)
-    AnalysisFactory(subject_topography=topo1b, function=func, kwargs=kwargs_1b)
-    AnalysisFactory(subject_topography=topo2a, function=func)  # default arguments
+    AnalysisFactory(subject_topography=topo1a, workflow_name=func.name, kwargs=kwargs_1a)
+    AnalysisFactory(subject_topography=topo1b, workflow_name=func.name, kwargs=kwargs_1b)
+    AnalysisFactory(subject_topography=topo2a, workflow_name=func.name)  # default arguments
 
     #
     # Generate analyses for surfaces with differing arguments
     #
     kwargs_1 = dict(a=2, b="abc")
     kwargs_2 = dict(a=2, b="def")  # differing from kwargs_1a!
-    AnalysisFactory(subject_surface=surf1, function=func, kwargs=kwargs_1)
-    AnalysisFactory(subject_surface=surf2, function=func, kwargs=kwargs_2)
+    AnalysisFactory(subject_surface=surf1, workflow_name=func.name, kwargs=kwargs_1)
+    AnalysisFactory(subject_surface=surf2, workflow_name=func.name, kwargs=kwargs_2)
 
     api_client.force_login(user_staff)
     response = api_client.get(reverse("manager:statistics"))
@@ -326,7 +325,7 @@ def test_query_with_error(
     handle_usage_statistics,
 ):
     user = one_line_scan.created_by
-    function = Workflow.objects.get(name="topobank.testing.test_error")
+    function = Workflow(name="topobank.testing.test_error")
 
     # Login
     api_client.force_login(user)
@@ -367,7 +366,7 @@ def test_query_with_error_in_dependency(
     handle_usage_statistics,
 ):
     user = one_line_scan.created_by
-    function = Workflow.objects.get(
+    function = Workflow(
         name="topobank.testing.test_error_in_dependency"
     )
 

@@ -3,10 +3,9 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse
 from topobank.analysis.models import (
     Configuration,
-    Workflow,
     WorkflowResult,
     WorkflowSubject,
-    WorkflowTemplate,
+    resolve_workflow,
 )
 from topobank.manager.models import Surface, Tag, Topography
 
@@ -31,47 +30,41 @@ class ConfigurationSerializer(StrictFieldMixin, serializers.HyperlinkedModelSeri
         return versions
 
 
-class WorkflowListSerializer(
-    StrictFieldMixin, serializers.HyperlinkedModelSerializer
-):
-    """Serializer for Workflow model."""
-    class Meta:
-        model = Workflow
-        fields = [
-            "url",
-            "name",
-            "display_name",
-        ]
+class WorkflowListSerializer(StrictFieldMixin, serializers.Serializer):
+    """Serializer for Workflow (plain Python class, not a DB model)."""
 
-    url = serializers.HyperlinkedIdentityField(
-        view_name="analysis:workflow-detail", lookup_field="name", read_only=True
-    )
+    url = serializers.SerializerMethodField()
+    name = serializers.CharField()
+    display_name = serializers.CharField()
+
+    @extend_schema_field(serializers.URLField())
+    def get_url(self, obj):
+        request = self.context.get("request")
+        return reverse(
+            "analysis:workflow-detail",
+            kwargs={"name": obj.name},
+            request=request,
+        )
 
 
-class WorkflowDetailSerializer(
-    StrictFieldMixin, serializers.HyperlinkedModelSerializer
-):
-    """Serializer for Workflow model."""
-    class Meta:
-        model = Workflow
-        fields = [
-            "url",
-            "name",
-            "display_name",
-            "subject_types",
-            "kwargs_schema",
-            "outputs_schema",
-        ]
+class WorkflowDetailSerializer(StrictFieldMixin, serializers.Serializer):
+    """Serializer for Workflow (plain Python class, not a DB model)."""
 
-    url = serializers.HyperlinkedIdentityField(
-        view_name="analysis:workflow-detail", lookup_field="name", read_only=True
-    )
-
+    url = serializers.SerializerMethodField()
+    name = serializers.CharField()
+    display_name = serializers.CharField()
     subject_types = serializers.SerializerMethodField()
-
     kwargs_schema = serializers.SerializerMethodField()
-
     outputs_schema = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.URLField())
+    def get_url(self, obj):
+        request = self.context.get("request")
+        return reverse(
+            "analysis:workflow-detail",
+            kwargs={"name": obj.name},
+            request=request,
+        )
 
     @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_subject_types(self, obj):
@@ -153,9 +146,7 @@ class ResultSerializer(
     )
     dependencies_url = serializers.SerializerMethodField()
     api = serializers.SerializerMethodField()
-    function = serializers.HyperlinkedRelatedField(
-        view_name="analysis:workflow-detail", lookup_field="name", read_only=True
-    )
+    function = serializers.SerializerMethodField()
     subject = SubjectSerializer(source="subject_dispatch", read_only=True)
     folder = serializers.HyperlinkedRelatedField(
         view_name="files:folder-api-detail", read_only=True
@@ -165,6 +156,17 @@ class ResultSerializer(
     )
     creation_time = serializers.DateTimeField(source="created_at", read_only=True)
     creator = UserField(source="created_by", read_only=True)
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_function(self, obj: WorkflowResult):
+        if obj.workflow_name is None:
+            return None
+        request = self.context.get("request")
+        return reverse(
+            "analysis:workflow-detail",
+            kwargs={"name": obj.workflow_name},
+            request=request,
+        )
 
     @extend_schema_field(
         {
@@ -193,26 +195,32 @@ class ResultSerializer(
         )
 
 
-class WorkflowTemplateSerializer(
-    StrictFieldMixin, serializers.HyperlinkedModelSerializer
-):
-    class Meta:
-        model = WorkflowTemplate
-        fields = [
-            "id",
-            "name",
-            "kwargs",
-            "implementation",
-            "creator",
-        ]
+class WorkflowField(serializers.Field):
+    """
+    Custom field for Workflow (plain Python class).
 
-    implementation = serializers.HyperlinkedRelatedField(
-        view_name="analysis:workflow-detail",
-        lookup_field="name",
-        queryset=Workflow.objects.all(),
-        allow_null=True,
-    )
+    - to_representation: returns URL pointing to workflow detail endpoint
+    - to_internal_value: accepts workflow name or URL, returns the workflow name string
+    """
 
-    creator = serializers.HyperlinkedRelatedField(
-        view_name="users:user-v1-detail", read_only=True
-    )
+    def to_representation(self, value):
+        if value is None:
+            return None
+        if isinstance(value, str):
+            name = value
+        else:
+            name = value.name
+        request = self.context.get("request")
+        return reverse(
+            "analysis:workflow-detail",
+            kwargs={"name": name},
+            request=request,
+        )
+
+    def to_internal_value(self, data):
+        try:
+            workflow = resolve_workflow(str(data))
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+        # Return the name string so it can be stored in the CharField
+        return workflow.name

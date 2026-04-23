@@ -6,13 +6,11 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from topobank.analysis.models import Configuration, Workflow, WorkflowResult
+from topobank.analysis.registry import get_analysis_function_names, get_implementation
 
 import topobank_rest_api.analysis.v1.views as v1
 from topobank_rest_api.analysis.permissions import WorkflowPermissions
-from topobank_rest_api.analysis.v2.filters import (
-    ResultViewFilterSet,
-    WorkflowViewFilterSet,
-)
+from topobank_rest_api.analysis.v2.filters import ResultViewFilterSet
 from topobank_rest_api.analysis.v2.serializers import (
     ConfigurationV2Serializer,
     DependencyV2ListSerializer,
@@ -40,16 +38,59 @@ class WorkflowView(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
     serializer_class = WorkflowDetailSerializer
     permission_classes = [IsAuthenticated, WorkflowPermissions]
     pagination_class = TopobankPaginator
-    filter_backends = [backends.DjangoFilterBackend]
-    filterset_class = WorkflowViewFilterSet
+    # No filter_backends — filtering is done in get_queryset/list directly
+    lookup_field = "name"
+    lookup_value_regex = "[a-z0-9._-]+"
 
     def get_serializer_class(self):
         if self.action == "list":
             return WorkflowListSerializer
         return super().get_serializer_class()
 
+    def _get_all_workflows(self):
+        return sorted(
+            [Workflow(name=name) for name in get_analysis_function_names()],
+            key=lambda w: w.name,
+        )
+
     def get_queryset(self):
-        return Workflow.objects.all().order_by('name')
+        return self._get_all_workflows()
+
+    def get_object(self):
+        name = self.kwargs[self.lookup_field]
+        impl = get_implementation(name=name)
+        if impl is None:
+            from django.http import Http404
+            raise Http404(f"Workflow '{name}' not found in registry.")
+        return Workflow(name=name)
+
+    def filter_queryset(self, queryset):
+        """Apply inline filters from query params to the list of Workflow objects."""
+        name_filter = self.request.query_params.get("name", None)
+        display_name_filter = self.request.query_params.get("display_name", None)
+        subject_type_filter = self.request.query_params.get("subject_type", None)
+
+        if name_filter:
+            queryset = [w for w in queryset if name_filter.lower() in w.name.lower()]
+        if display_name_filter:
+            queryset = [w for w in queryset if display_name_filter.lower() in w.display_name.lower()]
+        if subject_type_filter:
+            from rest_framework.exceptions import ValidationError
+            from topobank.manager.models import Surface, Tag, Topography
+            type_map = {"tag": Tag, "surface": Surface, "topography": Topography}
+            model_class = type_map.get(subject_type_filter.lower())
+            if model_class is None:
+                raise ValidationError(
+                    {
+                        "subject_type": (
+                            f"Invalid subject type '{subject_type_filter}'. "
+                            "Must be one of: tag, surface, topography."
+                        )
+                    }
+                )
+            queryset = [w for w in queryset if w.has_implementation(model_class)]
+
+        return queryset
 
     def list(self, request, *args, **kwargs):
         """Override list to initialize permission cache for performance"""
@@ -59,7 +100,13 @@ class WorkflowView(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
                 request.user._cached_group_ids = list(
                     request.user.groups.values_list('id', flat=True)
                 )
-        return super().list(request, *args, **kwargs)
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class ResultView(
@@ -85,7 +132,6 @@ class ResultView(
         # PermissionFilterBackend handles permission filtering with two-step optimization
         # We just apply business logic filters and optimizations here
         qs = WorkflowResult.objects.select_related(
-            "function",
             "subject_dispatch__tag",
             "subject_dispatch__topography",
             "subject_dispatch__surface",

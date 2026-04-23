@@ -89,7 +89,7 @@ def test_user_update_mixin(api_client, user_alice, user_bob, test_analysis_funct
     api_client.force_login(user_alice)
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.id,
+        "function": test_analysis_function.name,
         "subject": surface.id,
         "subject_type": "surface",
     }

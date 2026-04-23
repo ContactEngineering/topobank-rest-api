@@ -4,7 +4,6 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
-
 from topobank.analysis.models import WorkflowResult
 from topobank.testing.factories import AnalysisFactory, TagFactory
 
@@ -55,21 +54,21 @@ def test_result_list_filtered(api_client, user_alice,
     # 3 topography analyses
     topo_analysis_success = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
         task_state=WorkflowResult.SUCCESS,
         name="Named Analysis",  # Named analysis for named filter test
     )
     topo_analysis_failure = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
         task_state=WorkflowResult.FAILURE,
         # No name - unnamed analysis for named filter test
     )
     another_topo_analysis = AnalysisFactory(
         subject_topography=another_topo,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
         task_state=WorkflowResult.SUCCESS,
     )
@@ -77,7 +76,7 @@ def test_result_list_filtered(api_client, user_alice,
     # 2 surface analyses
     last_week_analysis = AnalysisFactory(
         subject_surface=one_line_scan.surface,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
         task_state=WorkflowResult.SUCCESS,
     )
@@ -89,7 +88,7 @@ def test_result_list_filtered(api_client, user_alice,
 
     another_surface_analysis = AnalysisFactory(
         subject_surface=another_surface,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
         task_state=WorkflowResult.SUCCESS,
     )
@@ -97,7 +96,7 @@ def test_result_list_filtered(api_client, user_alice,
     # 1 tag analysis
     tag_analysis = AnalysisFactory(
         subject_tag=test_tag,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
         task_state=WorkflowResult.SUCCESS,
     )
