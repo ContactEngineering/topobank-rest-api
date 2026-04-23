@@ -21,8 +21,7 @@ def add_to_default_group(sender, instance, created, **kwargs):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def register_testing_workflows(django_db_setup, django_db_blocker):
-    from django.core.management import call_command
+def register_testing_workflows():
     from topobank.analysis.registry import register_implementation
     from topobank.testing.workflows import (
         SecondTestImplementation,
@@ -38,6 +37,3 @@ def register_testing_workflows(django_db_setup, django_db_blocker):
     register_implementation(TestImplementationWithError)
     register_implementation(TestImplementationWithErrorInDependency)
     register_implementation(TestImplementationWithOutputs)
-
-    with django_db_blocker.unblock():
-        call_command("register_analysis_functions")

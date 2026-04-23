@@ -132,8 +132,6 @@ def test_query_with_partial_kwargs(api_client, one_line_scan, test_analysis_func
 
 @pytest.mark.django_db
 def test_retrieve_legacy_and_muflow_workflows(api_client, user_alice):
-    from topobank.analysis.registry import sync_implementation_classes
-    sync_implementation_classes()
     api_client.force_login(user_alice)
 
     # v2 workflow list endpoint
