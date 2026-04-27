@@ -1,8 +1,7 @@
 import pytest
 from django.urls import reverse
 from rest_framework import status
-
-from topobank.analysis.models import Workflow, WorkflowResult
+from topobank.analysis.models import WorkflowResult
 from topobank.manager.models import Tag
 from topobank.testing.factories import (
     AnalysisFactory,
@@ -17,12 +16,11 @@ from topobank.testing.factories import (
 def test_configuration_view_retrieve(api_client, user_alice, handle_usage_statistics):
     """Test retrieving a configuration via v2 API"""
     topo = Topography1DFactory(created_by=user_alice)
-    func = Workflow.objects.get(name="topobank.testing.test")
 
     # Create analysis which will have a configuration
     analysis = AnalysisFactory(
         subject_topography=topo,
-        function=func,
+        workflow_name="topobank.testing.test",
         created_by=user_alice,
     )
 
@@ -70,7 +68,7 @@ def test_workflow_retrieve_view(
     """Test retrieving a specific workflow via v2 API"""
     api_client.force_login(user_alice)
 
-    url = reverse("analysis:workflow-v2-detail", kwargs={"pk": test_analysis_function.pk})
+    url = reverse("analysis:workflow-v2-detail", kwargs={"name": test_analysis_function.name})
     response = api_client.get(url)
 
     assert response.status_code == status.HTTP_200_OK
@@ -103,7 +101,7 @@ def test_result_list_view(
     # Create some analyses
     analysis1 = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
     )
     analysis1.permissions.grant_for_user(user_alice, "view")
@@ -143,7 +141,7 @@ def test_result_list_pagination(
     for _ in range(5):
         analysis = AnalysisFactory(
             subject_topography=one_line_scan,
-            function=test_analysis_function,
+            workflow_name=test_analysis_function.name,
             created_by=user_alice,
         )
         analysis.permissions.grant_for_user(user_alice, "view")
@@ -176,7 +174,7 @@ def test_result_create_topography(
 
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.id,
+        "function": test_analysis_function.name,
         "subject": one_line_scan.id,
         "subject_type": "topography",
         "kwargs": {"a": 2, "b": "test"},
@@ -212,7 +210,7 @@ def test_result_create_surface(
     api_client.force_login(user_alice)
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.id,
+        "function": test_analysis_function.name,
         "subject": surface.id,
         "subject_type": "surface",
     }
@@ -247,7 +245,7 @@ def test_result_create_tag(api_client,
 
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.id,
+        "function": test_analysis_function.name,
         "subject": tag.id,
         "subject_type": "tag",
     }
@@ -304,7 +302,7 @@ def test_result_create_invalid_subject_type(
 
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.id,
+        "function": test_analysis_function.name,
         "subject": one_line_scan.id,
         "subject_type": "invalid_type",
     }
@@ -323,7 +321,7 @@ def test_result_create_nonexistent_subject(
 
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.id,
+        "function": test_analysis_function.name,
         "subject": 99999,
         "subject_type": "topography",
     }
@@ -351,7 +349,7 @@ def test_result_create_no_permission(
 
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.id,
+        "function": test_analysis_function.name,
         "subject": one_line_scan.id,
         "subject_type": "topography",
     }
@@ -380,7 +378,7 @@ def test_result_retrieve_view(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
     )
     analysis.permissions.grant_for_user(user_alice, "view")
@@ -418,7 +416,7 @@ def test_result_retrieve_no_permission(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
     )
 
@@ -445,7 +443,7 @@ def test_result_update_name(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
     )
     analysis.permissions.grant_for_user(user_alice, "edit")
@@ -465,8 +463,8 @@ def test_result_update_name(
     assert response.data["id"] == analysis.pk
     # Verify updated_by field
     assert response.data["updated_by"]["id"] == user_alice.id
-    # Verify subject was set to None when analysis is named
-    assert response.data['subject'] is None
+    # Named results retain their subject_dispatch
+    assert response.data['subject'] is not None
 
     # Verify in database
     analysis.refresh_from_db()
@@ -489,7 +487,7 @@ def test_result_update_no_permission(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
     )
 
@@ -518,7 +516,7 @@ def test_result_update_insufficient_permission(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
     )
 
@@ -551,7 +549,7 @@ def test_result_delete(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
     )
     analysis.permissions.grant_for_user(user_alice, "full")
@@ -581,7 +579,7 @@ def test_result_delete_no_permission(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
     )
 
@@ -608,7 +606,7 @@ def test_result_delete_insufficient_permission(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
     )
     analysis.permissions.grant_for_user(user_bob, "view")
@@ -647,7 +645,7 @@ def test_result_run_action(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
         task_state=WorkflowResult.NOTRUN,
     )
@@ -681,7 +679,7 @@ def test_result_run_action_already_running(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
         task_state=WorkflowResult.SUCCESS,
     )
@@ -712,7 +710,7 @@ def test_result_run_action_with_force(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
         updated_by=user_alice,
         task_state=WorkflowResult.SUCCESS,
@@ -745,7 +743,7 @@ def test_result_run_action_named_analysis(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
         updated_by=user_alice,
         name="My Named Analysis",
@@ -779,7 +777,7 @@ def test_result_run_action_subject_not_ready(
 
     analysis = AnalysisFactory(
         subject_topography=topo,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
         task_state=WorkflowResult.NOTRUN,
     )
@@ -815,7 +813,7 @@ def test_result_dependencies_action(
     # Create main analysis
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
     )
     analysis.permissions.grant_for_user(user_alice, "view")
@@ -823,7 +821,7 @@ def test_result_dependencies_action(
     # Create dependency
     dep_analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
     )
     dep_analysis.permissions.grant_for_user(user_alice, "view")
@@ -860,7 +858,7 @@ def test_result_dependencies_empty(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
     )
     analysis.permissions.grant_for_user(user_alice, "view")
@@ -891,7 +889,7 @@ def test_result_dependencies_pagination(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
     )
     analysis.permissions.grant_for_user(user_alice, "view")
@@ -901,7 +899,7 @@ def test_result_dependencies_pagination(
     for i in range(5):
         dep_analysis = AnalysisFactory(
             subject_topography=one_line_scan,
-            function=test_analysis_function,
+            workflow_name=test_analysis_function.name,
             created_by=user_alice,
         )
         dep_analysis.permissions.grant_for_user(user_alice, "view")
@@ -937,7 +935,7 @@ def test_result_dependencies_no_permission(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_analysis_function.name,
         created_by=user_alice,
     )
 

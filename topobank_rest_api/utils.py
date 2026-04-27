@@ -83,7 +83,7 @@ def get_api_url(obj, request=None):
         return reverse("manager:topography-api-detail", kwargs=dict(pk=obj.pk), request=request)
     elif model_name == "Manifest":
         return reverse("files:manifest-api-detail", kwargs={"pk": obj.pk}, request=request)
-    elif model_name == "Folder":
+    elif model_name in ("Folder", "ManifestSet"):
         return reverse("files:folder-api-detail", kwargs={"pk": obj.pk}, request=request)
     elif model_name == "WorkflowResult":
         return reverse("analysis:result-detail", kwargs=dict(pk=obj.id), request=request)

@@ -19,13 +19,9 @@ from rest_framework.decorators import api_view
 from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
-from topobank.analysis.models import (
-    Configuration,
-    Workflow,
-    WorkflowResult,
-    WorkflowTemplate,
-)
-from topobank.analysis.utils import filter_and_order_analyses, filter_workflow_templates
+from topobank.analysis.models import Configuration, Workflow, WorkflowResult
+from topobank.analysis.registry import get_analysis_function_names, get_implementation
+from topobank.analysis.utils import filter_and_order_analyses
 from topobank.manager.models import Surface
 from topobank.manager.utils import demangle_content_type
 
@@ -38,7 +34,6 @@ from ..serializers import (
     ResultSerializer,
     WorkflowDetailSerializer,
     WorkflowListSerializer,
-    WorkflowTemplateSerializer,
 )
 from .controller import AnalysisController
 
@@ -67,17 +62,34 @@ class WorkflowView(viewsets.ReadOnlyModelViewSet):
         return super().get_serializer_class()
 
     def get_queryset(self):
+        workflows = sorted(
+            [Workflow(name=name) for name in get_analysis_function_names()],
+            key=lambda w: w.name,
+        )
         subject_type = self.request.query_params.get("subject_type", None)
-        if subject_type is None:
-            return Workflow.objects.all()
-        else:
+        if subject_type is not None:
             subject_class = demangle_content_type(subject_type)
-            ids = [
-                f.id
-                for f in Workflow.objects.all()
-                if f.implementation.has_implementation(subject_class.model_class())
-            ]
-            return Workflow.objects.filter(pk__in=ids)
+            model_class = subject_class.model_class()
+            workflows = [w for w in workflows if w.has_implementation(model_class)]
+        return workflows
+
+    def get_object(self):
+        name = self.kwargs[self.lookup_field]
+        impl = get_implementation(name=name)
+        if impl is None:
+            from django.http import Http404
+            raise Http404(f"Workflow '{name}' not found in registry.")
+        return Workflow(name=name)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
 
 @extend_schema_view(
@@ -105,7 +117,6 @@ class ResultView(
     """Retrieve status of analysis (GET) and renew analysis (PUT)"""
 
     queryset = WorkflowResult.objects.select_related(
-        "function",
         "subject_dispatch__tag",
         "subject_dispatch__topography",
         "subject_dispatch__surface",
@@ -421,7 +432,7 @@ def series_card_view(request, **kwargs):
                     a.subject_dispatch.surface is not None
                     and a.subject_dispatch.surface.id
                     == analysis.subject_dispatch.topography.surface.id
-                    and a.function.id == analysis.function.id
+                    and a.workflow_name == analysis.workflow_name
                 ):
                     parent_analysis = a
 
@@ -602,7 +613,7 @@ def statistics(request):
 @transaction.non_atomic_requests
 def memory_usage(request):
     m = defaultdict(list)
-    for function_id, function_name in Workflow.objects.values_list("id", "name"):
+    for function_name in get_analysis_function_names():
         max_nb_data_pts = Case(
             When(
                 subject_dispatch__surface__isnull=False,
@@ -654,7 +665,7 @@ def memory_usage(request):
             ),
         )
         for x in (
-            WorkflowResult.objects.filter(function_id=function_id)
+            WorkflowResult.objects.filter(workflow_name=function_name)
             .values("task_memory")
             .annotate(
                 resolution_x=F("subject_dispatch__topography__resolution_x"),
@@ -724,46 +735,3 @@ def set_result_permissions(request, workflow_id=None):
 
     # Permissions were updated successfully, return 204 No Content
     return Response({}, status=204)
-
-
-class WorkflowTemplateView(viewsets.ModelViewSet):
-    """
-    Create, update, retrieve and delete workflow templates.
-
-    """
-
-    serializer_class = WorkflowTemplateSerializer
-    permission_classes = [WorkflowPermissions]
-
-    def get_queryset(self):
-        """
-        Get the queryset for the workflow templates.
-        """
-        qs = WorkflowTemplate.objects.all()
-        return filter_workflow_templates(self.request, qs)
-
-    def perform_create(self, serializer):
-        """
-        Create a new workflow template.
-        """
-        serializer.save(creator=self.request.user)
-
-    def performance_update(self, serializer):
-        """
-        Update an existing workflow template.
-        """
-        serializer.save()
-
-    def retrieve(self, request, *args, **kwargs):
-        """
-        Retrieve a workflow template.
-        """
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
-
-    def perform_destroy(self, instance):
-        """
-        Delete a workflow template.
-        """
-        instance.delete()

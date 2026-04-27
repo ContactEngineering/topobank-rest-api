@@ -12,6 +12,13 @@ from topobank_rest_api.utils import (
 _log = logging.getLogger(__name__)
 
 
+class SingleFolderField(serializers.HyperlinkedRelatedField):
+    """HyperlinkedRelatedField that presents M2M folders as a single folder."""
+
+    def get_attribute(self, instance):
+        return instance.folders.first()
+
+
 class ManifestSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
     """Serializer for Manifest model."""
     class Meta:
@@ -43,8 +50,9 @@ class ManifestSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerialize
     #
     # Hyperlinked resources
     #
-    folder = serializers.HyperlinkedRelatedField(
-        view_name="files:folder-api-detail", queryset=ManifestSet.objects.all()
+    folder = SingleFolderField(
+        view_name="files:folder-api-detail", queryset=ManifestSet.objects.all(),
+        required=False, allow_null=True
     )
     uploaded_by = serializers.HyperlinkedRelatedField(
         source="created_by", view_name="users:user-v1-detail", read_only=True
@@ -80,3 +88,18 @@ class ManifestSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerialize
             return get_upload_instructions_api(obj)
         except RuntimeError:
             return None
+
+    def update(self, instance, validated_data):
+        folder = validated_data.pop('folder', None)
+        instance = super().update(instance, validated_data)
+        if folder is not None:
+            instance.folders.clear()
+            instance.folders.add(folder)
+        return instance
+
+    def create(self, validated_data):
+        folder = validated_data.pop('folder', None)
+        instance = super().create(validated_data)
+        if folder is not None:
+            instance.folders.add(folder)
+        return instance

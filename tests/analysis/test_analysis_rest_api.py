@@ -1,7 +1,6 @@
 import pytest
 from django.utils import timezone
 from rest_framework.reverse import reverse
-
 from topobank.analysis.models import Workflow, WorkflowResult
 from topobank.manager.models import Tag
 from topobank.manager.utils import dict_to_base64, subjects_to_base64
@@ -23,24 +22,24 @@ def test_statistics(api_client, user_staff, handle_usage_statistics):
     topo1b = Topography1DFactory(surface=surf1)
     topo2a = Topography1DFactory(surface=surf2)
 
-    func = Workflow.objects.get(name="topobank.testing.test")
+    func = Workflow(name="topobank.testing.test")
 
     #
     # Generate analyses for topographies with differing arguments
     #
     kwargs_1a = dict(a=1, b="abc")
     kwargs_1b = dict(a=1, b="def")  # differing from kwargs_1a!
-    AnalysisFactory(subject_topography=topo1a, function=func, kwargs=kwargs_1a)
-    AnalysisFactory(subject_topography=topo1b, function=func, kwargs=kwargs_1b)
-    AnalysisFactory(subject_topography=topo2a, function=func)  # default arguments
+    AnalysisFactory(subject_topography=topo1a, workflow_name=func.name, kwargs=kwargs_1a)
+    AnalysisFactory(subject_topography=topo1b, workflow_name=func.name, kwargs=kwargs_1b)
+    AnalysisFactory(subject_topography=topo2a, workflow_name=func.name)  # default arguments
 
     #
     # Generate analyses for surfaces with differing arguments
     #
     kwargs_1 = dict(a=2, b="abc")
     kwargs_2 = dict(a=2, b="def")  # differing from kwargs_1a!
-    AnalysisFactory(subject_surface=surf1, function=func, kwargs=kwargs_1)
-    AnalysisFactory(subject_surface=surf2, function=func, kwargs=kwargs_2)
+    AnalysisFactory(subject_surface=surf1, workflow_name=func.name, kwargs=kwargs_1)
+    AnalysisFactory(subject_surface=surf2, workflow_name=func.name, kwargs=kwargs_2)
 
     api_client.force_login(user_staff)
     response = api_client.get(reverse("manager:statistics"))
@@ -129,6 +128,31 @@ def test_query_with_partial_kwargs(api_client, one_line_scan, test_analysis_func
     assert response.status_code == 200
     assert len(response.data["analyses"]) == 1
     assert WorkflowResult.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_retrieve_legacy_and_muflow_workflows(api_client, user_alice):
+    api_client.force_login(user_alice)
+
+    # v2 workflow list endpoint
+    response = api_client.get(reverse('analysis:workflow-list'))
+    assert response.status_code == 200
+
+    # Extract names from pagination if used, or direct list
+    if 'results' in response.data:
+        names = [w['name'] for w in response.data['results']]
+    else:
+        names = [w['name'] for w in response.data]
+
+    assert "topobank.testing.test" in names, "Legacy workflow not retrieved"
+
+    try:
+        from muflow import registry as muflow_registry
+        muflow_names = list(muflow_registry.get_all())
+        if muflow_names:
+            assert muflow_names[0] in names, "muFlow workflow not retrieved"
+    except ImportError:
+        pass
 
 
 @pytest.mark.django_db
@@ -299,7 +323,7 @@ def test_query_with_error(
     handle_usage_statistics,
 ):
     user = one_line_scan.created_by
-    function = Workflow.objects.get(name="topobank.testing.test_error")
+    function = Workflow(name="topobank.testing.test_error")
 
     # Login
     api_client.force_login(user)
@@ -340,7 +364,7 @@ def test_query_with_error_in_dependency(
     handle_usage_statistics,
 ):
     user = one_line_scan.created_by
-    function = Workflow.objects.get(
+    function = Workflow(
         name="topobank.testing.test_error_in_dependency"
     )
 

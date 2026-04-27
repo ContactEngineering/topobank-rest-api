@@ -1,60 +1,8 @@
 from django.db.models import Q
 from django_filters.rest_framework import FilterSet, filters
 from drf_spectacular.utils import OpenApiTypes, extend_schema_field
-from topobank.analysis.models import Workflow, WorkflowResult
-from topobank.manager.models import Surface, Tag, Topography
+from topobank.analysis.models import WorkflowResult
 from topobank.taskapp.utils import TASK_STATE_CHOICES
-
-
-class WorkflowViewFilterSet(FilterSet):
-    """
-    FilterSet for Workflow model.
-
-    Filters:
-    - name: Filter by workflow name (case-insensitive contains)
-    - display_name: Filter by display name (case-insensitive contains)
-    - subject_type: Filter by subject type they can process (tag, surface, topography)
-    """
-
-    name = filters.CharFilter(lookup_expr="icontains")
-    display_name = filters.CharFilter(lookup_expr="icontains")
-    subject_type = filters.ChoiceFilter(
-        method="filter_subject_type",
-        choices=[("tag", "Tag"), ("surface", "Surface"), ("topography", "Topography")]
-    )
-
-    class Meta:
-        model = Workflow
-        fields = ["name", "display_name", "subject_type"]
-
-    def filter_subject_type(self, queryset, name, value):
-        """
-        Filter workflows by subject type they can process.
-
-        Args:
-            queryset: Initial queryset
-            name: Filter field name
-            value: Subject type to filter by ("tag", "surface", "topography")
-
-        Returns:
-            Filtered queryset
-        """
-        match value.lower():
-            case "tag":
-                model_class = Tag
-            case "surface":
-                model_class = Surface
-            case "topography":
-                model_class = Topography
-            case _:
-                return queryset.none()
-
-        workflow_ids = [
-            workflow.id
-            for workflow in queryset
-            if workflow.has_implementation(model_class)
-        ]
-        return queryset.filter(id__in=workflow_ids)
 
 
 class ResultViewFilterSet(FilterSet):
@@ -92,7 +40,7 @@ class ResultViewFilterSet(FilterSet):
 
     # Filter by workflow name
     workflow_name = filters.CharFilter(
-        field_name="function__name",
+        field_name="workflow_name",
         lookup_expr="iexact",
         label="Workflow name"
     )

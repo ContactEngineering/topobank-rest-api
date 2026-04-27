@@ -1,7 +1,10 @@
 import pytest
 from rest_framework.exceptions import ValidationError
-
 from topobank.analysis.models import WorkflowResult
+from topobank.manager.models import Tag
+from topobank.taskapp.models import Configuration, Dependency, Version
+from topobank.testing.factories import SurfaceFactory, TagFactory, Topography1DFactory
+
 from topobank_rest_api.analysis.serializers import WorkflowListSerializer
 from topobank_rest_api.analysis.v2.serializers import (
     ConfigurationV2Serializer,
@@ -10,9 +13,6 @@ from topobank_rest_api.analysis.v2.serializers import (
     ResultV2DetailSerializer,
     ResultV2ListSerializer,
 )
-from topobank.manager.models import Tag
-from topobank.taskapp.models import Configuration, Dependency, Version
-from topobank.testing.factories import SurfaceFactory, TagFactory, Topography1DFactory
 
 
 @pytest.mark.django_db
@@ -69,20 +69,6 @@ def test_workflow_v2_serializer(api_rf, test_analysis_function):
     assert data["display_name"] == workflow.display_name
     assert "url" in data
     assert data["url"] == f"http://testserver/analysis/api/workflow/{workflow.name}/"
-
-
-@pytest.mark.django_db
-def test_result_v2_create_serializer_validate_function_by_id(
-    api_rf, user_alice, test_analysis_function
-):
-    """Test ResultV2CreateSerializer validates function by ID"""
-    request = api_rf.get("/")
-    request.user = user_alice
-
-    serializer = ResultV2CreateSerializer(context={"request": request})
-    workflow = serializer.validate_function(test_analysis_function.id)
-
-    assert workflow == test_analysis_function
 
 
 @pytest.mark.django_db
@@ -465,7 +451,7 @@ def test_result_v2_list_serializer(api_rf, one_line_scan, test_analysis_function
     request.user = topo.created_by
 
     analysis = AnalysisFactory(
-        subject_topography=topo, user=topo.created_by, function=test_analysis_function
+        subject_topography=topo, user=topo.created_by, workflow_name=test_analysis_function.name
     )
 
     serializer = ResultV2ListSerializer(analysis, context={"request": request})
@@ -496,7 +482,7 @@ def test_result_v2_detail_serializer(api_rf, one_line_scan, test_analysis_functi
     request.user = topo.created_by
 
     analysis = AnalysisFactory(
-        subject_topography=topo, user=topo.created_by, function=test_analysis_function
+        subject_topography=topo, user=topo.created_by, workflow_name=test_analysis_function.name
     )
 
     serializer = ResultV2DetailSerializer(analysis, context={"request": request})
@@ -550,7 +536,7 @@ def test_result_v2_detail_serializer_name_description_writable(
     topo = one_line_scan
 
     analysis = AnalysisFactory(
-        subject_topography=topo, user=topo.created_by, function=test_analysis_function
+        subject_topography=topo, user=topo.created_by, workflow_name=test_analysis_function.name
     )
 
     serializer = ResultV2DetailSerializer(
@@ -589,10 +575,10 @@ def test_dependency_v2_list_serializer_with_dependencies(
 
     # Create a workflow result
     analysis1 = AnalysisFactory(
-        subject_topography=topo, user=topo.created_by, function=test_analysis_function
+        subject_topography=topo, user=topo.created_by, workflow_name=test_analysis_function.name
     )
     analysis2 = AnalysisFactory(
-        subject_topography=topo, user=topo.created_by, function=test_analysis_function
+        subject_topography=topo, user=topo.created_by, workflow_name=test_analysis_function.name
     )
 
     # Create dependencies dict
@@ -644,7 +630,7 @@ def test_dependency_v2_list_serializer_partial_missing(
     topo = one_line_scan
 
     analysis1 = AnalysisFactory(
-        subject_topography=topo, user=topo.created_by, function=test_analysis_function
+        subject_topography=topo, user=topo.created_by, workflow_name=test_analysis_function.name
     )
 
     # Mix of existing and non-existing workflow results

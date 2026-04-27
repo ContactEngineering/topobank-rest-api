@@ -1,10 +1,14 @@
 import pytest
 from django.utils.duration import duration_string
-
-from topobank_rest_api.analysis.serializers import ResultSerializer
 from topobank.manager.models import Tag
 from topobank.testing.factories import AnalysisFactory
-from topobank.testing.utils import ASSERT_EQUAL_IGNORE_VALUE, assert_dict_equal
+from topobank.testing.utils import (
+    ASSERT_EQUAL_IGNORE_VALUE,
+    assert_dict_equal,
+    drf_isoformat,
+)
+
+from topobank_rest_api.analysis.serializers import ResultSerializer
 
 
 @pytest.mark.django_db
@@ -12,7 +16,7 @@ def test_serializer_subject_topography(api_rf, one_line_scan, test_analysis_func
     topo = one_line_scan
     request = api_rf.get("/")
     analysis = AnalysisFactory(
-        subject_topography=topo, user=topo.created_by, function=test_analysis_function
+        subject_topography=topo, user=topo.created_by, workflow_name=test_analysis_function.name
     )
     data = ResultSerializer(analysis, context={"request": request}).data
     assert_dict_equal(
@@ -34,10 +38,10 @@ def test_serializer_subject_topography(api_rf, one_line_scan, test_analysis_func
             "task_state": "su",
             "task_messages": ASSERT_EQUAL_IGNORE_VALUE,
             "task_memory": None,
-            "creation_time": analysis.created_at.astimezone().isoformat(),
-            "task_submission_time": analysis.task_submission_time.astimezone().isoformat(),
-            "task_start_time": analysis.task_start_time.astimezone().isoformat(),
-            "task_end_time": analysis.task_end_time.astimezone().isoformat(),
+            "creation_time": drf_isoformat(analysis.created_at),
+            "task_submission_time": drf_isoformat(analysis.task_submission_time),
+            "task_start_time": drf_isoformat(analysis.task_start_time),
+            "task_end_time": drf_isoformat(analysis.task_end_time),
             "dois": [],
             "configuration": None,
             "task_duration": duration_string(analysis.task_duration),
@@ -62,7 +66,7 @@ def test_serializer_subject_tag(api_rf, one_line_scan, test_analysis_function):
     tag.authorize_user(topo.created_by)
     request = api_rf.get("/")
     analysis = AnalysisFactory(
-        subject_tag=tag, user=topo.created_by, function=test_analysis_function
+        subject_tag=tag, user=topo.created_by, workflow_name=test_analysis_function.name
     )
     data = ResultSerializer(analysis, context={"request": request}).data
     assert_dict_equal(
@@ -84,10 +88,10 @@ def test_serializer_subject_tag(api_rf, one_line_scan, test_analysis_function):
             "task_state": "su",
             "task_messages": ASSERT_EQUAL_IGNORE_VALUE,
             "task_memory": None,
-            "creation_time": analysis.created_at.astimezone().isoformat(),
-            "task_submission_time": analysis.task_submission_time.astimezone().isoformat(),
-            "task_start_time": analysis.task_start_time.astimezone().isoformat(),
-            "task_end_time": analysis.task_end_time.astimezone().isoformat(),
+            "creation_time": drf_isoformat(analysis.created_at),
+            "task_submission_time": drf_isoformat(analysis.task_submission_time),
+            "task_start_time": drf_isoformat(analysis.task_start_time),
+            "task_end_time": drf_isoformat(analysis.task_end_time),
             "dois": [],
             "configuration": None,
             "task_duration": duration_string(analysis.task_duration),

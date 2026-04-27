@@ -1,7 +1,7 @@
 import pytest
 from rest_framework.reverse import reverse
 from topobank.testing.factories import OrganizationFactory
-from topobank_orcid.organizations.models import Organization
+from topobank.testing.mock_auth.organizations.models import Organization
 
 
 @pytest.mark.django_db
@@ -145,6 +145,31 @@ def test_patch_organizations(api_client, user_alice, user_staff):
     )
     assert response.status_code == 200, response.content
     assert response.data["name"] == org_data["name"]
+
+
+@pytest.mark.django_db
+def test_add_remove_users_with_absolute_url(api_client, user_alice, user_staff):
+    """Frontend sends full absolute URLs; verify User.resolve() handles them."""
+    org = OrganizationFactory()
+    user_path = reverse("users:user-v1-detail", kwargs={"pk": user_alice.id})
+    data_dict = {"user": f"http://testserver{user_path}"}
+
+    api_client.force_authenticate(user_staff)
+    response = api_client.post(
+        reverse("organizations:add-user-v1", kwargs={"pk": org.id}),
+        data=data_dict,
+        format="json",
+    )
+    assert response.status_code == 200, response.content
+    assert user_alice.groups.count() == 2
+
+    response = api_client.post(
+        reverse("organizations:remove-user-v1", kwargs={"pk": org.id}),
+        data=data_dict,
+        format="json",
+    )
+    assert response.status_code == 200, response.content
+    assert user_alice.groups.count() == 1
 
 
 @pytest.mark.django_db

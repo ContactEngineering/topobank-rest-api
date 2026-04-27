@@ -177,7 +177,7 @@ class CachedUrlRelatedField(serializers.RelatedField):
         "properties": {
             "id": {"type": "number", "readOnly": True},
             "url": {"type": "string", "readOnly": True},
-            "allow": {"$ref": "#/components/schemas/PermissionAllowEnum", "readOnly": True},
+            "allow": {"type": "string", "enum": ["view", "edit", "full"], "readOnly": True},
         },
         "required": ["id", "url", "allow"],
     }

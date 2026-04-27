@@ -3,7 +3,7 @@ from rest_framework.reverse import reverse
 from topobank.manager.custodian import periodic_cleanup
 from topobank.manager.models import Topography
 from topobank.testing.factories import OrganizationFactory
-from topobank_orcid.users.models import User
+from topobank.testing.mock_auth.users.models import User
 
 from topobank_rest_api.utils import get_api_url
 
@@ -206,6 +206,27 @@ def test_delete_user(api_client, one_line_scan, user_alice, user_staff):
     # Line scan should have been deleted
     with pytest.raises(Topography.DoesNotExist):
         Topography.objects.get(id=one_line_scan.id)
+
+
+@pytest.mark.django_db
+def test_user_response_includes_is_staff(api_client, user_alice, user_staff):
+    # A regular user's own detail should include is_staff=False
+    api_client.force_authenticate(user_alice)
+    response = api_client.get(
+        reverse("users:user-v1-detail", kwargs={"pk": user_alice.id})
+    )
+    assert response.status_code == 200, response.content
+    assert "is_staff" in response.data
+    assert response.data["is_staff"] is False
+
+    # A staff user's own detail should include is_staff=True
+    api_client.force_authenticate(user_staff)
+    response = api_client.get(
+        reverse("users:user-v1-detail", kwargs={"pk": user_staff.id})
+    )
+    assert response.status_code == 200, response.content
+    assert "is_staff" in response.data
+    assert response.data["is_staff"] is True
 
 
 @pytest.mark.django_db

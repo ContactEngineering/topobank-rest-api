@@ -7,8 +7,8 @@ from topobank.files.models import ManifestSet, Manifest
 from topobank.files.utils import file_storage_path
 from topobank.testing.data import FIXTURE_DATA_DIR
 from topobank.testing.factories import ManifestSetFactory, ManifestFactory
-from topobank.testing.utils import assert_dict_equal
-from topobank_orcid.authorization.models import PermissionSet, UserPermission
+from topobank.testing.utils import assert_dict_equal, drf_isoformat
+from topobank.testing.mock_auth.authorization.models import PermissionSet, UserPermission
 
 from tests.utils import upload_file
 from topobank_rest_api.utils import get_api_url
@@ -25,10 +25,10 @@ def test_upload_file(api_client, user_alice, user_bob):
     manifest = Manifest.objects.create(
         filename=name,
         permissions=permissions,
-        folder=folder,
         created_by=user_alice,
         kind="raw",
     )
+    manifest.folders.add(folder)
 
     # File belongs to alice, log in as bob
     api_client.force_login(user_bob)
@@ -75,16 +75,16 @@ def test_delete_file(api_client, user_alice, read_only, handle_usage_statistics)
     folder = ManifestSet.objects.create(permissions=permissions, read_only=read_only)
     manifest1 = Manifest.objects.create(
         permissions=permissions,
-        folder=folder,
         filename="dektak-1.csv",
         file=File(open(f"{FIXTURE_DATA_DIR}/dektak-1.csv", "rb")),
     )
-    Manifest.objects.create(
+    manifest1.folders.add(folder)
+    m2 = Manifest.objects.create(
         permissions=permissions,
-        folder=folder,
         filename="dummy.txt",
         file=File(open(f"{FIXTURE_DATA_DIR}/dummy.txt", "rb")),
     )
+    m2.folders.add(folder)
 
     # Try deleting file1 - no permission
     response = api_client.delete(
@@ -124,16 +124,16 @@ def test_modify_file(
     folder = ManifestSet.objects.create(permissions=permissions, read_only=read_only)
     manifest1 = Manifest.objects.create(
         permissions=permissions,
-        folder=folder,
         filename="dektak-1.csv",
         file=File(open(f"{FIXTURE_DATA_DIR}/dektak-1.csv", "rb")),
     )
-    Manifest.objects.create(
+    manifest1.folders.add(folder)
+    m2 = Manifest.objects.create(
         permissions=permissions,
-        folder=folder,
         filename="dummy.txt",
         file=File(open(f"{FIXTURE_DATA_DIR}/dummy.txt", "rb")),
     )
+    m2.folders.add(folder)
 
     # We should not be able to see the manifest when not logged in
     response = api_client.get(
@@ -260,6 +260,7 @@ def test_create_file(api_client, user_alice, read_only, handle_usage_statistics)
     assert Manifest.objects.count() == (0 if read_only else 1)
 
 
+@pytest.mark.django_db
 def test_list_folder(api_client, user_alice):
     folder = ManifestSetFactory(user=user_alice)
     manifest1 = ManifestFactory(folder=folder)
@@ -284,10 +285,10 @@ def test_list_folder(api_client, user_alice):
                 "filename": manifest1.filename,
                 "folder": f"http://testserver/files/folder/{folder.id}/",
                 "kind": "N/A",
-                "created": manifest1.created_at.astimezone().isoformat(),
-                "updated": manifest1.updated_at.astimezone().isoformat(),
+                "created": drf_isoformat(manifest1.created_at),
+                "updated": drf_isoformat(manifest1.updated_at),
                 "uploaded_by": None,
-                "upload_confirmed": manifest1.confirmed_at.astimezone().isoformat(),
+                "upload_confirmed": drf_isoformat(manifest1.confirmed_at),
                 "upload_instructions": None,
             },
             manifest2.filename: {
@@ -296,10 +297,10 @@ def test_list_folder(api_client, user_alice):
                 "filename": manifest2.filename,
                 "folder": f"http://testserver/files/folder/{folder.id}/",
                 "kind": "N/A",
-                "created": manifest2.created_at.astimezone().isoformat(),
-                "updated": manifest2.updated_at.astimezone().isoformat(),
+                "created": drf_isoformat(manifest2.created_at),
+                "updated": drf_isoformat(manifest2.updated_at),
                 "uploaded_by": None,
-                "upload_confirmed": manifest2.confirmed_at.astimezone().isoformat(),
+                "upload_confirmed": drf_isoformat(manifest2.confirmed_at),
                 "upload_instructions": None,
             },
         },
