@@ -2,7 +2,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from topobank.authorization import get_permission_model
 from topobank.authorization.models import FULL, VIEW
-from topobank.files.models import Manifest
+from topobank.files.models import Manifest, ManifestSet
 
 from topobank_rest_api.supplib.mixins import StrictFieldMixin
 from topobank_rest_api.supplib.serializers import ModelRelatedField, UserField
@@ -92,6 +92,14 @@ class ManifestV2CreateSerializer(
             "filename",
         ]
         fields = required_fields + ["folder", "kind"]
+
+    folder = ModelRelatedField(
+        view_name="files:folder-api-detail",
+        queryset=ManifestSet.objects.all(),
+        required=False,
+        allow_null=True,
+        default=None,
+    )
 
     def create(self, validated_data):
         # Get folder if specified
