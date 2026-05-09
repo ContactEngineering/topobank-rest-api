@@ -1,18 +1,17 @@
 from django.db import transaction
+from django.http import Http404
 from django_filters.rest_framework import backends
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import mixins, status, viewsets
+from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from topobank.analysis.models import Configuration, Workflow, WorkflowResult
+from topobank.analysis.registry import get_implementation, get_workflow_names
 
 import topobank_rest_api.analysis.v1.views as v1
 from topobank_rest_api.analysis.permissions import WorkflowPermissions
-from topobank_rest_api.analysis.v2.filters import (
-    ResultViewFilterSet,
-    WorkflowViewFilterSet,
-)
+from topobank_rest_api.analysis.v2.filters import ResultViewFilterSet
 from topobank_rest_api.analysis.v2.serializers import (
     ConfigurationV2Serializer,
     DependencyV2ListSerializer,
@@ -36,12 +35,14 @@ class ConfigurationView(v1.ConfigurationView):
     serializer_class = ConfigurationV2Serializer
 
 
-class WorkflowView(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin):
+class WorkflowView(
+    viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
+):
+    lookup_field = "name"
+    lookup_value_regex = "[a-z0-9._-]+"
     serializer_class = WorkflowDetailSerializer
     permission_classes = [IsAuthenticated, WorkflowPermissions]
     pagination_class = TopobankPaginator
-    filter_backends = [backends.DjangoFilterBackend]
-    filterset_class = WorkflowViewFilterSet
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -49,23 +50,51 @@ class WorkflowView(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Li
         return super().get_serializer_class()
 
     def get_queryset(self):
-        return Workflow.objects.all().order_by('name')
+        workflows = [Workflow(name=n) for n in sorted(get_workflow_names())]
+        name_filter = self.request.query_params.get("name", None)
+        display_name_filter = self.request.query_params.get("display_name", None)
+        subject_type_filter = self.request.query_params.get("subject_type", None)
+        if name_filter:
+            workflows = [w for w in workflows if name_filter.lower() in w.name.lower()]
+        if display_name_filter:
+            workflows = [
+                w
+                for w in workflows
+                if display_name_filter.lower() in w.display_name.lower()
+            ]
+        if subject_type_filter:
+            from topobank.manager.models import Surface, Tag, Topography
+
+            model_map = {"tag": Tag, "surface": Surface, "topography": Topography}
+            model_class = model_map.get(subject_type_filter.lower())
+            if model_class is None:
+                raise serializers.ValidationError(
+                    {
+                        "subject_type": f"Invalid choice '{subject_type_filter}'. "
+                                        "Valid choices are: tag, surface, topography."
+                    }
+                )
+            workflows = [w for w in workflows if w.has_implementation(model_class)]
+        return workflows
+
+    def get_object(self):
+        name = self.kwargs[self.lookup_field]
+        if get_implementation(name=name) is None:
+            raise Http404
+        return Workflow(name=name)
 
     def list(self, request, *args, **kwargs):
         """Override list to initialize permission cache for performance"""
         if request.user.is_authenticated:
             # Cache user groups once per request
-            if not hasattr(request.user, '_cached_group_ids'):
+            if not hasattr(request.user, "_cached_group_ids"):
                 request.user._cached_group_ids = list(
-                    request.user.groups.values_list('id', flat=True)
+                    request.user.groups.values_list("id", flat=True)
                 )
         return super().list(request, *args, **kwargs)
 
 
-class ResultView(
-    UserUpdateMixin,
-    viewsets.ModelViewSet
-):
+class ResultView(UserUpdateMixin, viewsets.ModelViewSet):
     """
     WorkflowResult ViewSet - Allows CRUD operations on Workflow Results.
     - Retrieve - Get details of a specific workflow result.
@@ -85,7 +114,6 @@ class ResultView(
         # PermissionFilterBackend handles permission filtering with two-step optimization
         # We just apply business logic filters and optimizations here
         qs = WorkflowResult.objects.select_related(
-            "function",
             "subject_dispatch__tag",
             "subject_dispatch__topography",
             "subject_dispatch__surface",
@@ -95,15 +123,15 @@ class ResultView(
         )
 
         # Optimize prefetching based on action to reduce unnecessary data loading
-        if self.action == 'list':
+        if self.action == "list":
             # List view: minimal data needed
             qs = qs.prefetch_related(
-                'permissions__user_permissions',
-                'permissions__organization_permissions',
+                "permissions__user_permissions",
+                "permissions__organization_permissions",
             ).defer(
                 # Defer large JSONFields not displayed in list serializer
-                'kwargs',        # Not shown in list view
-                'metadata',      # Not shown in list view
+                "kwargs",  # Not shown in list view
+                "metadata",  # Not shown in list view
             )
         else:
             # Detail/update/delete views: fetch complete data
@@ -112,17 +140,17 @@ class ResultView(
                 "folder",
                 "configuration",
             ).prefetch_related(
-                'permissions__user_permissions__user',
-                'permissions__organization_permissions__organization',
-                'configuration__versions',
+                "permissions__user_permissions__user",
+                "permissions__organization_permissions__organization",
+                "configuration__versions",
             )
 
         return qs.order_by("-task_start_time")
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return ResultV2ListSerializer
-        elif self.action == 'create':
+        elif self.action == "create":
             return ResultV2CreateSerializer
         else:
             return super().get_serializer_class()
@@ -135,14 +163,14 @@ class ResultView(
     @extend_schema(
         parameters=[
             OpenApiParameter(
-                name='task_state',
-                type={'type': 'array', 'items': {'type': 'string'}},
+                name="task_state",
+                type={"type": "array", "items": {"type": "string"}},
                 location=OpenApiParameter.QUERY,
-                description='Filter by task state. Can be specified multiple times: task_state=su&task_state=fa',
+                description="Filter by task state. Can be specified multiple times: task_state=su&task_state=fa",
                 required=False,
                 explode=True,
-                style='form',
-                enum=['pe', 'st', 're', 'fa', 'su', 'no']
+                style="form",
+                enum=["pe", "st", "re", "fa", "su", "no"],
             ),
         ]
     )
@@ -151,54 +179,58 @@ class ResultView(
         # Initialize cache on user object to avoid repeated queries during serialization
         if request.user.is_authenticated:
             # Cache user groups once per request
-            if not hasattr(request.user, '_cached_group_ids'):
+            if not hasattr(request.user, "_cached_group_ids"):
                 request.user._cached_group_ids = list(
-                    request.user.groups.values_list('id', flat=True)
+                    request.user.groups.values_list("id", flat=True)
                 )
         return super().list(request, *args, **kwargs)
 
     @extend_schema(
         request={
-            'application/json': {
-                'type': 'object',
-                'properties': {
-                    'metadata': {
-                        'type': 'object',
-                        'description': 'Optional metadata dictionary to store with the analysis',
-                        'additionalProperties': True,
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "metadata": {
+                        "type": "object",
+                        "description": "Optional metadata dictionary to store with the analysis",
+                        "additionalProperties": True,
                     }
                 },
-                'example': {
-                    'metadata': {
-                        'description': 'Analysis for project X',
-                        'batch_id': '2024-01-07'
+                "example": {
+                    "metadata": {
+                        "description": "Analysis for project X",
+                        "batch_id": "2024-01-07",
                     }
-                }
+                },
             }
         },
         parameters=[
             OpenApiParameter(
-                name='force',
+                name="force",
                 type=bool,
                 location=OpenApiParameter.QUERY,
-                description='Force re-run of analysis even if already running or completed',
+                description="Force re-run of analysis even if already running or completed",
                 required=False,
             ),
-        ]
+        ],
     )
     @action(detail=True, methods=["POST"], url_path="run")
     @transaction.non_atomic_requests
     def run(self, request, *args, **kwargs):
         """Start the analysis task for the given WorkflowResult instance."""
         analysis: WorkflowResult = self.get_object()
-        force_submit = request.query_params.get('force', '').lower() in ('true', '1', 'yes')
-        metadata = request.data.get('metadata')
+        force_submit = request.query_params.get("force", "").lower() in (
+            "true",
+            "1",
+            "yes",
+        )
+        metadata = request.data.get("metadata")
 
         # Validation checks
         if analysis.name:
             return Response(
                 {"message": "Cannot renew named analysis"},
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         # TO DISCUSS: `is_ready` means the topography has been processed and metadata extracted and stored
@@ -215,35 +247,37 @@ class ResultView(
             return Response(
                 {
                     "message": "Analysis is already running or completed. "
-                               "To re-run, use the force=true query parameter."
+                    "To re-run, use the force=true query parameter."
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # UserUpdateMixin doesnt handle custom actions, so set updated_by manually
         analysis.updated_by = request.user
-        update_fields = ['updated_by']
+        update_fields = ["updated_by"]
 
         # Validate metadata is a dictionary if provided
         if metadata is not None:
             if not isinstance(metadata, dict):
                 return Response(
                     {"message": "metadata must be a dictionary"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
             analysis.metadata = metadata
-            update_fields.append('metadata')
+            update_fields.append("metadata")
 
         # Wrap DB writes and task submission in transaction
         with transaction.atomic():
             analysis.save(update_fields=update_fields)
             analysis.submit(force_submit=force_submit)
 
-        serializer = self.get_serializer(analysis, context={'request': request})
+        serializer = self.get_serializer(analysis, context={"request": request})
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
     @extend_schema(request=None)
-    @action(detail=True, methods=['GET'], url_path="dependencies", url_name="dependency")
+    @action(
+        detail=True, methods=["GET"], url_path="dependencies", url_name="dependency"
+    )
     def dependencies(self, request, *args, **kwargs):
         """Get dependencies for the WorkflowResult"""
         analysis: WorkflowResult = self.get_object()
@@ -266,17 +300,21 @@ class ResultView(
 
         # Create a filtered dependencies dict with only the page items
         page_ids_set = set(page_ids)
-        paginated_deps = {k: v for k, v in dependencies_dict.items() if v in page_ids_set}
+        paginated_deps = {
+            k: v for k, v in dependencies_dict.items() if v in page_ids_set
+        }
 
         # Use the serializer to handle fetching and serialization (with optimized queries)
-        serializer = DependencyV2ListSerializer(paginated_deps, context={'request': request})
+        serializer = DependencyV2ListSerializer(
+            paginated_deps, context={"request": request}
+        )
         page_data = serializer.data
 
         # Return paginated response
         return paginator.get_paginated_response(page_data)
 
     @extend_schema(request=None)
-    @action(detail=True, methods=['GET'], url_path="files", url_name="folder")
+    @action(detail=True, methods=["GET"], url_path="files", url_name="folder")
     def list_manifests(self, request, *args, **kwargs):
         """Get the folder of the WorkflowResult"""
         analysis: WorkflowResult = self.get_object()
@@ -284,17 +322,20 @@ class ResultView(
         if folder is None:
             return Response(
                 {"message": "This analysis does not have a folder."},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         # Prefetch related users to avoid N+1 queries
-        manifests = folder.files.select_related('created_by', 'updated_by').all()
+        manifests = folder.files.select_related("created_by", "updated_by").all()
 
-        return Response({
-            manifest.filename: ManifestV2Serializer(manifest,
-                                                    context={"request": request}).data
-            for manifest in manifests
-        })
+        return Response(
+            {
+                manifest.filename: ManifestV2Serializer(
+                    manifest, context={"request": request}
+                ).data
+                for manifest in manifests
+            }
+        )
 
     @transaction.atomic
     def perform_destroy(self, instance):

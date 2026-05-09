@@ -4,7 +4,6 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
-
 from topobank.analysis.models import WorkflowResult
 from topobank.testing.factories import AnalysisFactory, TagFactory
 
@@ -14,7 +13,7 @@ from topobank.testing.factories import AnalysisFactory, TagFactory
 @pytest.mark.django_db
 def test_result_list_filtered(api_client, user_alice,
                               one_line_scan, one_topography,
-                              test_analysis_function,
+                              test_workflow,
                               handle_usage_statistics):
     """Test filtering results by various parameters
 
@@ -55,21 +54,21 @@ def test_result_list_filtered(api_client, user_alice,
     # 3 topography analyses
     topo_analysis_success = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
         task_state=WorkflowResult.SUCCESS,
         name="Named Analysis",  # Named analysis for named filter test
     )
     topo_analysis_failure = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
         task_state=WorkflowResult.FAILURE,
         # No name - unnamed analysis for named filter test
     )
     another_topo_analysis = AnalysisFactory(
         subject_topography=another_topo,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
         task_state=WorkflowResult.SUCCESS,
     )
@@ -77,7 +76,7 @@ def test_result_list_filtered(api_client, user_alice,
     # 2 surface analyses
     last_week_analysis = AnalysisFactory(
         subject_surface=one_line_scan.surface,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
         task_state=WorkflowResult.SUCCESS,
     )
@@ -89,7 +88,7 @@ def test_result_list_filtered(api_client, user_alice,
 
     another_surface_analysis = AnalysisFactory(
         subject_surface=another_surface,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
         task_state=WorkflowResult.SUCCESS,
     )
@@ -97,7 +96,7 @@ def test_result_list_filtered(api_client, user_alice,
     # 1 tag analysis
     tag_analysis = AnalysisFactory(
         subject_tag=test_tag,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
         task_state=WorkflowResult.SUCCESS,
     )
@@ -150,7 +149,7 @@ def test_result_list_filtered(api_client, user_alice,
         assert result["subject"]["type"] == "topography"
 
     # Filter by workflow (function) name
-    response = api_client.get(url, {"workflow_name": test_analysis_function.name})
+    response = api_client.get(url, {"workflow_name": test_workflow.name})
     assert response.status_code == status.HTTP_200_OK
     results = response.data["results"]
     # All six analyses use the same workflow

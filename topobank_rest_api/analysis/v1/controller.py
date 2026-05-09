@@ -2,10 +2,9 @@ import logging
 from collections import defaultdict
 from functools import reduce
 
-from topobank.manager.utils import dict_from_base64
-from topobank.analysis.models import WorkflowTemplate
-from topobank.analysis.utils import merge_dicts
 from topobank.analysis.controller import AnalysisController as CoreAnalysisController
+from topobank.manager.utils import dict_from_base64
+
 from ..serializers import ResultSerializer
 
 _log = logging.getLogger(__name__)
@@ -154,16 +153,6 @@ class AnalysisController(CoreAnalysisController):
         )
         if workflow_kwargs is not None and isinstance(workflow_kwargs, str):
             workflow_kwargs = dict_from_base64(workflow_kwargs)
-
-        workflow_template_id, data = AnalysisController.get_request_parameter(
-            ["workflow_template"], data
-        )
-        if workflow_template_id is not None:
-            workflow_template = WorkflowTemplate.objects.get(id=workflow_template_id)
-            workflow_kwargs = merge_dicts(
-                workflow_template.kwargs,
-                [workflow_kwargs]
-            )
 
         if len(data) > 0:
             raise ValueError(

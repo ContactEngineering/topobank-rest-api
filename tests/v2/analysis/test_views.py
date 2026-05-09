@@ -1,7 +1,6 @@
 import pytest
 from django.urls import reverse
 from rest_framework import status
-
 from topobank.analysis.models import Workflow, WorkflowResult
 from topobank.manager.models import Tag
 from topobank.testing.factories import (
@@ -17,12 +16,12 @@ from topobank.testing.factories import (
 def test_configuration_view_retrieve(api_client, user_alice, handle_usage_statistics):
     """Test retrieving a configuration via v2 API"""
     topo = Topography1DFactory(created_by=user_alice)
-    func = Workflow.objects.get(name="topobank.testing.test")
+    func = Workflow(name="topobank.testing.test")
 
     # Create analysis which will have a configuration
     analysis = AnalysisFactory(
         subject_topography=topo,
-        function=func,
+        workflow_name=func.name,
         created_by=user_alice,
     )
 
@@ -65,17 +64,17 @@ def test_workflow_list_view(api_client, user_alice, handle_usage_statistics):
 
 @pytest.mark.django_db
 def test_workflow_retrieve_view(
-    api_client, user_alice, test_analysis_function, handle_usage_statistics
+    api_client, user_alice, test_workflow, handle_usage_statistics
 ):
     """Test retrieving a specific workflow via v2 API"""
     api_client.force_login(user_alice)
 
-    url = reverse("analysis:workflow-v2-detail", kwargs={"pk": test_analysis_function.pk})
+    url = reverse("analysis:workflow-v2-detail", kwargs={"name": test_workflow.name})
     response = api_client.get(url)
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.data["name"] == test_analysis_function.name
-    assert response.data["display_name"] == test_analysis_function.display_name
+    assert response.data["name"] == test_workflow.name
+    assert response.data["display_name"] == test_workflow.display_name
     assert "url" in response.data
 
 
@@ -93,7 +92,7 @@ def test_workflow_view_unauthenticated(api_client, handle_usage_statistics):
 
 @pytest.mark.django_db
 def test_result_list_view(
-    api_client, user_alice, one_line_scan, test_analysis_function, handle_usage_statistics
+    api_client, user_alice, one_line_scan, test_workflow, handle_usage_statistics
 ):
     """Test listing results via v2 API"""
     one_line_scan.created_by = user_alice
@@ -103,7 +102,7 @@ def test_result_list_view(
     # Create some analyses
     analysis1 = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
     )
     analysis1.permissions.grant_for_user(user_alice, "view")
@@ -132,7 +131,7 @@ def test_result_list_view(
 
 @pytest.mark.django_db
 def test_result_list_pagination(
-    api_client, user_alice, one_line_scan, test_analysis_function, handle_usage_statistics
+    api_client, user_alice, one_line_scan, test_workflow, handle_usage_statistics
 ):
     """Test pagination of results list"""
     one_line_scan.created_by = user_alice
@@ -143,7 +142,7 @@ def test_result_list_pagination(
     for _ in range(5):
         analysis = AnalysisFactory(
             subject_topography=one_line_scan,
-            function=test_analysis_function,
+            workflow_name=test_workflow.name,
             created_by=user_alice,
         )
         analysis.permissions.grant_for_user(user_alice, "view")
@@ -166,7 +165,7 @@ def test_result_create_topography(
     api_client,
     user_alice,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test creating a result for a topography via v2 API"""
@@ -176,7 +175,7 @@ def test_result_create_topography(
 
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.id,
+        "function": test_workflow.name,
         "subject": one_line_scan.id,
         "subject_type": "topography",
         "kwargs": {"a": 2, "b": "test"},
@@ -187,7 +186,7 @@ def test_result_create_topography(
 
     assert response.status_code == status.HTTP_201_CREATED
     assert "id" in response.data
-    assert response.data["function"]["name"] == test_analysis_function.name
+    assert response.data["function"]["name"] == test_workflow.name
     assert response.data["subject"]["id"] == one_line_scan.id
     assert response.data["subject"]["type"] == "topography"
     assert response.data["kwargs"] == {"a": 2, "b": "test"}
@@ -196,14 +195,14 @@ def test_result_create_topography(
 
     # Verify it was created in the database
     analysis = WorkflowResult.objects.get(id=response.data["id"])
-    assert analysis.function == test_analysis_function
+    assert analysis.function == test_workflow
     assert analysis.subject == one_line_scan
     assert analysis.kwargs == {"a": 2, "b": "test"}
 
 
 @pytest.mark.django_db
 def test_result_create_surface(
-    api_client, user_alice, test_analysis_function, handle_usage_statistics
+    api_client, user_alice, test_workflow, handle_usage_statistics
 ):
     """Test creating a result for a surface via v2 API"""
     surface = SurfaceFactory(created_by=user_alice)
@@ -212,7 +211,7 @@ def test_result_create_surface(
     api_client.force_login(user_alice)
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.id,
+        "function": test_workflow.name,
         "subject": surface.id,
         "subject_type": "surface",
     }
@@ -222,7 +221,7 @@ def test_result_create_surface(
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data["subject"]["id"] == surface.id
     assert response.data["subject"]["type"] == "surface"
-    assert response.data["function"]["name"] == test_analysis_function.name
+    assert response.data["function"]["name"] == test_workflow.name
     assert response.data["created_by"]["id"] == user_alice.id
     assert response.data["task_state"] == WorkflowResult.NOTRUN
 
@@ -231,7 +230,7 @@ def test_result_create_surface(
 def test_result_create_tag(api_client,
                            user_alice,
                            one_line_scan,
-                           test_analysis_function,
+                           test_workflow,
                            handle_usage_statistics):
     """Test creating a result for a tag via v2 API"""
     api_client.force_login(user_alice)
@@ -247,7 +246,7 @@ def test_result_create_tag(api_client,
 
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.id,
+        "function": test_workflow.name,
         "subject": tag.id,
         "subject_type": "tag",
     }
@@ -257,7 +256,7 @@ def test_result_create_tag(api_client,
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data["subject"]["id"] == tag.id
     assert response.data["subject"]["type"] == "tag"
-    assert response.data["function"]["name"] == test_analysis_function.name
+    assert response.data["function"]["name"] == test_workflow.name
     assert response.data["created_by"]["id"] == user_alice.id
     assert response.data["task_state"] == WorkflowResult.NOTRUN
 
@@ -267,7 +266,7 @@ def test_result_create_with_workflow_name(
     api_client,
     user_alice,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test creating a result using workflow name instead of ID"""
@@ -278,7 +277,7 @@ def test_result_create_with_workflow_name(
 
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.name,
+        "function": test_workflow.name,
         "subject": one_line_scan.id,
         "subject_type": "topography",
     }
@@ -286,7 +285,7 @@ def test_result_create_with_workflow_name(
     response = api_client.post(url, data, format="json")
 
     assert response.status_code == status.HTTP_201_CREATED
-    assert response.data["function"]["name"] == test_analysis_function.name
+    assert response.data["function"]["name"] == test_workflow.name
     assert response.data["created_by"]["id"] == user_alice.id
     assert response.data["task_state"] == WorkflowResult.NOTRUN
 
@@ -296,7 +295,7 @@ def test_result_create_invalid_subject_type(
     api_client,
     user_alice,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test creating a result with invalid subject type"""
@@ -304,7 +303,7 @@ def test_result_create_invalid_subject_type(
 
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.id,
+        "function": test_workflow.name,
         "subject": one_line_scan.id,
         "subject_type": "invalid_type",
     }
@@ -316,14 +315,14 @@ def test_result_create_invalid_subject_type(
 
 @pytest.mark.django_db
 def test_result_create_nonexistent_subject(
-    api_client, user_alice, test_analysis_function, handle_usage_statistics
+    api_client, user_alice, test_workflow, handle_usage_statistics
 ):
     """Test creating a result with non-existent subject"""
     api_client.force_login(user_alice)
 
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.id,
+        "function": test_workflow.name,
         "subject": 99999,
         "subject_type": "topography",
     }
@@ -339,7 +338,7 @@ def test_result_create_no_permission(
     user_alice,
     user_bob,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test creating a result for a subject user doesn't have permission to"""
@@ -351,7 +350,7 @@ def test_result_create_no_permission(
 
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.id,
+        "function": test_workflow.name,
         "subject": one_line_scan.id,
         "subject_type": "topography",
     }
@@ -369,7 +368,7 @@ def test_result_retrieve_view(
     api_client,
     user_alice,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test retrieving a specific result via v2 API"""
@@ -380,7 +379,7 @@ def test_result_retrieve_view(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
     )
     analysis.permissions.grant_for_user(user_alice, "view")
@@ -406,7 +405,7 @@ def test_result_retrieve_no_permission(
     user_alice,
     user_bob,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test retrieving a result without permission"""
@@ -418,7 +417,7 @@ def test_result_retrieve_no_permission(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
     )
 
@@ -436,7 +435,7 @@ def test_result_update_name(
     api_client,
     user_alice,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test updating result name via v2 API"""
@@ -445,7 +444,7 @@ def test_result_update_name(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
     )
     analysis.permissions.grant_for_user(user_alice, "edit")
@@ -480,7 +479,7 @@ def test_result_update_no_permission(
     user_alice,
     user_bob,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test updating a result without permission"""
@@ -489,7 +488,7 @@ def test_result_update_no_permission(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
     )
 
@@ -509,7 +508,7 @@ def test_result_update_insufficient_permission(
     user_alice,
     user_bob,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test updating a result with insufficient permission"""
@@ -518,7 +517,7 @@ def test_result_update_insufficient_permission(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
     )
 
@@ -543,7 +542,7 @@ def test_result_update_insufficient_permission(
 
 @pytest.mark.django_db
 def test_result_delete(
-    api_client, user_alice, one_line_scan, test_analysis_function, handle_usage_statistics
+    api_client, user_alice, one_line_scan, test_workflow, handle_usage_statistics
 ):
     """Test deleting a result via v2 API"""
     one_line_scan.created_by = user_alice
@@ -551,7 +550,7 @@ def test_result_delete(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
     )
     analysis.permissions.grant_for_user(user_alice, "full")
@@ -572,7 +571,7 @@ def test_result_delete_no_permission(
     user_alice,
     user_bob,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test deleting a result without permission"""
@@ -581,7 +580,7 @@ def test_result_delete_no_permission(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
     )
 
@@ -599,7 +598,7 @@ def test_result_delete_insufficient_permission(
     user_alice,
     user_bob,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test deleting a result with insufficient permission"""
@@ -608,7 +607,7 @@ def test_result_delete_insufficient_permission(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
     )
     analysis.permissions.grant_for_user(user_bob, "view")
@@ -635,7 +634,7 @@ def test_result_run_action(
     api_client,
     user_alice,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     django_capture_on_commit_callbacks,
     handle_usage_statistics
 ):
@@ -647,7 +646,7 @@ def test_result_run_action(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
         task_state=WorkflowResult.NOTRUN,
     )
@@ -670,7 +669,7 @@ def test_result_run_action_already_running(
     api_client,
     user_alice,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test running a result that is already running"""
@@ -681,7 +680,7 @@ def test_result_run_action_already_running(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
         task_state=WorkflowResult.SUCCESS,
     )
@@ -700,7 +699,7 @@ def test_result_run_action_with_force(
     api_client,
     user_alice,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     django_capture_on_commit_callbacks,
     handle_usage_statistics
 ):
@@ -712,7 +711,7 @@ def test_result_run_action_with_force(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
         updated_by=user_alice,
         task_state=WorkflowResult.SUCCESS,
@@ -735,7 +734,7 @@ def test_result_run_action_named_analysis(
     api_client,
     user_alice,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test running a named analysis (should fail)"""
@@ -745,7 +744,7 @@ def test_result_run_action_named_analysis(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
         updated_by=user_alice,
         name="My Named Analysis",
@@ -765,7 +764,7 @@ def test_result_run_action_named_analysis(
 def test_result_run_action_subject_not_ready(
     api_client,
     user_alice,
-    test_analysis_function,
+    test_workflow,
     django_capture_on_commit_callbacks,
     handle_usage_statistics
 ):
@@ -779,7 +778,7 @@ def test_result_run_action_subject_not_ready(
 
     analysis = AnalysisFactory(
         subject_topography=topo,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
         task_state=WorkflowResult.NOTRUN,
     )
@@ -804,7 +803,7 @@ def test_result_dependencies_action(
     api_client,
     user_alice,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test retrieving dependencies for a result"""
@@ -815,7 +814,7 @@ def test_result_dependencies_action(
     # Create main analysis
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
     )
     analysis.permissions.grant_for_user(user_alice, "view")
@@ -823,7 +822,7 @@ def test_result_dependencies_action(
     # Create dependency
     dep_analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
     )
     dep_analysis.permissions.grant_for_user(user_alice, "view")
@@ -850,7 +849,7 @@ def test_result_dependencies_empty(
     api_client,
     user_alice,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test retrieving dependencies when there are none"""
@@ -860,7 +859,7 @@ def test_result_dependencies_empty(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
     )
     analysis.permissions.grant_for_user(user_alice, "view")
@@ -881,7 +880,7 @@ def test_result_dependencies_pagination(
     api_client,
     user_alice,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test pagination of dependencies"""
@@ -891,7 +890,7 @@ def test_result_dependencies_pagination(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
     )
     analysis.permissions.grant_for_user(user_alice, "view")
@@ -901,7 +900,7 @@ def test_result_dependencies_pagination(
     for i in range(5):
         dep_analysis = AnalysisFactory(
             subject_topography=one_line_scan,
-            function=test_analysis_function,
+            workflow_name=test_workflow.name,
             created_by=user_alice,
         )
         dep_analysis.permissions.grant_for_user(user_alice, "view")
@@ -928,7 +927,7 @@ def test_result_dependencies_no_permission(
     user_alice,
     user_bob,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics
 ):
     """Test retrieving dependencies without permission"""
@@ -937,7 +936,7 @@ def test_result_dependencies_no_permission(
 
     analysis = AnalysisFactory(
         subject_topography=one_line_scan,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         created_by=user_alice,
     )
 

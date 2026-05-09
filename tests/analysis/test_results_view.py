@@ -5,9 +5,7 @@ Test for results view.
 import datetime
 
 import pytest
-from topobank_rest_api.utils import get_api_url
 from django.urls import reverse
-
 from topobank.analysis.models import Workflow, WorkflowResult
 from topobank.manager.models import Topography
 from topobank.manager.utils import dict_to_base64, subjects_to_base64
@@ -20,10 +18,12 @@ from topobank.testing.factories import (
     UserFactory,
 )
 
+from topobank_rest_api.utils import get_api_url
+
 
 @pytest.mark.django_db
 def test_analysis_times(
-    api_client, two_topos, test_analysis_function
+    api_client, two_topos, test_workflow
 ):
     topo = Topography.objects.first()
 
@@ -34,7 +34,7 @@ def test_analysis_times(
     TopographyAnalysisFactory.create(
         user=user,
         subject_topography=topo,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         task_state=WorkflowResult.SUCCESS,
         task_start_time=datetime.datetime(2018, 1, 1, 12),
         task_end_time=datetime.datetime(
@@ -45,7 +45,7 @@ def test_analysis_times(
     response = api_client.get(
         reverse(
             "analysis:card-series",
-            kwargs=dict(workflow=test_analysis_function.name),
+            kwargs=dict(workflow=test_workflow.name),
         )
         + "?subjects="
         + subjects_to_base64([topo])
@@ -61,7 +61,7 @@ def test_analysis_times(
 
 @pytest.mark.django_db
 def test_show_only_last_analysis(
-    api_client, two_topos, test_analysis_function, handle_usage_statistics
+    api_client, two_topos, test_workflow, handle_usage_statistics
 ):
     topo1 = Topography.objects.first()
     topo2 = Topography.objects.last()
@@ -84,9 +84,9 @@ def test_show_only_last_analysis(
     TopographyAnalysisFactory.create(
         user=user,
         subject_topography=topo1,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         task_state=WorkflowResult.SUCCESS,
-        kwargs=test_analysis_function.get_default_kwargs(),
+        kwargs=test_workflow.get_default_kwargs(),
         task_start_time=datetime.datetime(2018, 1, 1, 12),
         task_end_time=datetime.datetime(2018, 1, 1, 13, 1, 1),
         result=result,
@@ -95,9 +95,9 @@ def test_show_only_last_analysis(
     TopographyAnalysisFactory.create(
         user=user,
         subject_topography=topo1,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         task_state=WorkflowResult.SUCCESS,
-        kwargs=test_analysis_function.get_default_kwargs(),
+        kwargs=test_workflow.get_default_kwargs(),
         task_start_time=datetime.datetime(2018, 1, 2, 12),
         task_end_time=datetime.datetime(2018, 1, 2, 13, 1, 1),
         result=result,
@@ -109,9 +109,9 @@ def test_show_only_last_analysis(
     TopographyAnalysisFactory.create(
         user=user,
         subject_topography=topo2,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         task_state=WorkflowResult.SUCCESS,
-        kwargs=test_analysis_function.get_default_kwargs(),
+        kwargs=test_workflow.get_default_kwargs(),
         task_start_time=datetime.datetime(2018, 1, 3, 12),
         task_end_time=datetime.datetime(2018, 1, 3, 13, 1, 1),
         result=result,
@@ -121,9 +121,9 @@ def test_show_only_last_analysis(
     TopographyAnalysisFactory.create(
         user=user,
         subject_topography=topo2,
-        function=test_analysis_function,
+        workflow_name=test_workflow.name,
         task_state=WorkflowResult.SUCCESS,
-        kwargs=test_analysis_function.get_default_kwargs(),
+        kwargs=test_workflow.get_default_kwargs(),
         task_start_time=datetime.datetime(2018, 1, 4, 12),
         task_end_time=datetime.datetime(2018, 1, 4, 13, 1, 1),
         result=result,
@@ -136,7 +136,7 @@ def test_show_only_last_analysis(
     response = api_client.get(
         reverse(
             "analysis:card-series",
-            kwargs=dict(workflow=test_analysis_function.name),
+            kwargs=dict(workflow=test_workflow.name),
         )
         + "?subjects="
         + subjects_to_base64([topo1, topo2])
@@ -159,7 +159,7 @@ def test_warnings_for_different_arguments(api_client, handle_usage_statistics):
     topo1b = Topography1DFactory(surface=surf1)
     topo2a = Topography1DFactory(surface=surf2)
 
-    func = Workflow.objects.get(name="topobank.testing.test")
+    func = Workflow(name="topobank.testing.test")
 
     #
     # Generate analyses for topographies with differing arguments
@@ -167,13 +167,13 @@ def test_warnings_for_different_arguments(api_client, handle_usage_statistics):
     kwargs_1a = dict(a=1, b="abc")
     kwargs_1b = dict(a=1, b="def")  # differing from kwargs_1a!
     TopographyAnalysisFactory(
-        subject_topography=topo1a, function=func, kwargs=kwargs_1a
+        subject_topography=topo1a, workflow_name=func.name, kwargs=kwargs_1a
     )
     TopographyAnalysisFactory(
-        subject_topography=topo1b, function=func, kwargs=kwargs_1b
+        subject_topography=topo1b, workflow_name=func.name, kwargs=kwargs_1b
     )
     TopographyAnalysisFactory(
-        subject_topography=topo2a, function=func
+        subject_topography=topo2a, workflow_name=func.name
     )  # default arguments
 
     #
@@ -181,8 +181,8 @@ def test_warnings_for_different_arguments(api_client, handle_usage_statistics):
     #
     kwargs_1 = dict(a=2, b="abc")
     kwargs_2 = dict(a=2, b="def")  # differing from kwargs_1a!
-    SurfaceAnalysisFactory(subject_surface=surf1, function=func, kwargs=kwargs_1)
-    SurfaceAnalysisFactory(subject_surface=surf2, function=func, kwargs=kwargs_2)
+    SurfaceAnalysisFactory(subject_surface=surf1, workflow_name=func.name, kwargs=kwargs_1)
+    SurfaceAnalysisFactory(subject_surface=surf2, workflow_name=func.name, kwargs=kwargs_2)
 
     api_client.force_login(user)
 
@@ -218,7 +218,7 @@ def test_shared_topography_triggers_no_new_analysis(
     surface2 = SurfaceFactory(created_by=user2)
 
     # create topographies + functions + analyses
-    func1 = Workflow.objects.get(name="topobank.testing.test")
+    func1 = Workflow(name="topobank.testing.test")
     # func2 = WorkflowFactory()
 
     # Two topographies for surface1
@@ -231,17 +231,17 @@ def test_shared_topography_triggers_no_new_analysis(
     # analyses, differentiate by start time
     TopographyAnalysisFactory(
         subject_topography=topo1a,
-        function=func1,
+        workflow_name=func1.name,
         task_start_time=datetime.datetime(2019, 1, 1, 12),
     )
     TopographyAnalysisFactory(
         subject_topography=topo1b,
-        function=func1,
+        workflow_name=func1.name,
         task_start_time=datetime.datetime(2019, 1, 1, 13),
     )
     TopographyAnalysisFactory(
         subject_topography=topo2a,
-        function=func1,
+        workflow_name=func1.name,
         task_start_time=datetime.datetime(2019, 1, 1, 14),
     )
 
@@ -306,14 +306,14 @@ def test_show_analysis_filter_with_empty_subject_list(api_client):
     surf1 = SurfaceFactory(created_by=user)
     surf2 = SurfaceFactory(created_by=user)
 
-    func = Workflow.objects.get(name="topobank.testing.test")
+    func = Workflow(name="topobank.testing.test")
 
     kwargs_1 = dict(a=2, b="abc")
     analysis1 = SurfaceAnalysisFactory(
-        subject_surface=surf1, function=func, kwargs=kwargs_1
+        subject_surface=surf1, workflow_name=func.name, kwargs=kwargs_1
     )
     analysis2 = SurfaceAnalysisFactory(
-        subject_surface=surf2, function=func, kwargs=kwargs_1
+        subject_surface=surf2, workflow_name=func.name, kwargs=kwargs_1
     )
 
     assert analysis1.subject == surf1
@@ -372,11 +372,11 @@ def test_show_analysis_filter_without_subject_list(api_client):
     user = UserFactory()
     surf1 = SurfaceFactory(created_by=user)
 
-    func = Workflow.objects.get(name="topobank.testing.test")
+    func = Workflow(name="topobank.testing.test")
 
     kwargs_1 = dict(a=2, b="abc")
     analysis1 = SurfaceAnalysisFactory(
-        subject_surface=surf1, function=func, kwargs=kwargs_1
+        subject_surface=surf1, workflow_name=func.name, kwargs=kwargs_1
     )
 
     assert analysis1.subject == surf1
@@ -401,10 +401,10 @@ def test_set_result_permissions(
     user = UserFactory()
     user2 = UserFactory()
     surf1 = SurfaceFactory(created_by=user)
-    func = Workflow.objects.get(name="topobank.testing.test")
+    func = Workflow(name="topobank.testing.test")
     analysis1 = SurfaceAnalysisFactory(
         subject_surface=surf1,
-        function=func,
+        workflow_name=func.name,
         permissions=PermissionSetFactory(
             user=user,
             allow='full'

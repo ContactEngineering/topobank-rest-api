@@ -81,7 +81,7 @@ def test_strict_field_mixin_multiple_errors():
 
 
 @pytest.mark.django_db
-def test_user_update_mixin(api_client, user_alice, user_bob, test_analysis_function, handle_usage_statistics):
+def test_user_update_mixin(api_client, user_alice, user_bob, test_workflow, handle_usage_statistics):
     """Test create and update fields auto apply via v2 API"""
     surface = SurfaceFactory(created_by=user_alice)
     surface.grant_permission(user_alice, "view")
@@ -89,7 +89,7 @@ def test_user_update_mixin(api_client, user_alice, user_bob, test_analysis_funct
     api_client.force_login(user_alice)
     url = reverse("analysis:result-v2-list")
     data = {
-        "function": test_analysis_function.id,
+        "function": test_workflow.name,
         "subject": surface.id,
         "subject_type": "surface",
     }

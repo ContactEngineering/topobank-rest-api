@@ -1,7 +1,6 @@
 import pytest
 from django.utils import timezone
 from rest_framework.reverse import reverse
-
 from topobank.analysis.models import Workflow, WorkflowResult
 from topobank.manager.models import Tag
 from topobank.manager.utils import dict_to_base64, subjects_to_base64
@@ -23,24 +22,24 @@ def test_statistics(api_client, user_staff, handle_usage_statistics):
     topo1b = Topography1DFactory(surface=surf1)
     topo2a = Topography1DFactory(surface=surf2)
 
-    func = Workflow.objects.get(name="topobank.testing.test")
+    func = Workflow(name="topobank.testing.test")
 
     #
     # Generate analyses for topographies with differing arguments
     #
     kwargs_1a = dict(a=1, b="abc")
     kwargs_1b = dict(a=1, b="def")  # differing from kwargs_1a!
-    AnalysisFactory(subject_topography=topo1a, function=func, kwargs=kwargs_1a)
-    AnalysisFactory(subject_topography=topo1b, function=func, kwargs=kwargs_1b)
-    AnalysisFactory(subject_topography=topo2a, function=func)  # default arguments
+    AnalysisFactory(subject_topography=topo1a, workflow_name=func.name, kwargs=kwargs_1a)
+    AnalysisFactory(subject_topography=topo1b, workflow_name=func.name, kwargs=kwargs_1b)
+    AnalysisFactory(subject_topography=topo2a, workflow_name=func.name)  # default arguments
 
     #
     # Generate analyses for surfaces with differing arguments
     #
     kwargs_1 = dict(a=2, b="abc")
     kwargs_2 = dict(a=2, b="def")  # differing from kwargs_1a!
-    AnalysisFactory(subject_surface=surf1, function=func, kwargs=kwargs_1)
-    AnalysisFactory(subject_surface=surf2, function=func, kwargs=kwargs_2)
+    AnalysisFactory(subject_surface=surf1, workflow_name=func.name, kwargs=kwargs_1)
+    AnalysisFactory(subject_surface=surf2, workflow_name=func.name, kwargs=kwargs_2)
 
     api_client.force_login(user_staff)
     response = api_client.get(reverse("manager:statistics"))
@@ -53,12 +52,12 @@ def test_statistics(api_client, user_staff, handle_usage_statistics):
 
 
 @pytest.mark.django_db
-def test_query_with_wrong_kwargs(api_client, one_line_scan, test_analysis_function):
+def test_query_with_wrong_kwargs(api_client, one_line_scan, test_workflow):
     user = one_line_scan.created_by
     one_line_scan.grant_permission(user, "view")
     response = api_client.get(
         f"{reverse('analysis:result-list')}?topography={one_line_scan.id}"
-        f"&workflow={test_analysis_function.name}"
+        f"&workflow={test_workflow.name}"
     )
     assert response.status_code == 200, response.reason_phrase
     assert len(response.data["analyses"]) == 0
@@ -68,7 +67,7 @@ def test_query_with_wrong_kwargs(api_client, one_line_scan, test_analysis_functi
     response = api_client.get(
         f"{reverse('analysis:result-list')}"
         f"?subjects={subjects_to_base64([one_line_scan])}"
-        f"&workflow={test_analysis_function.name}"
+        f"&workflow={test_workflow.name}"
     )
     assert response.status_code == 200
     assert len(response.data["analyses"]) == 1
@@ -77,7 +76,7 @@ def test_query_with_wrong_kwargs(api_client, one_line_scan, test_analysis_functi
     response = api_client.get(
         f"{reverse('analysis:result-list')}"
         f"?topography={one_line_scan.id}"
-        f"&workflow={test_analysis_function.name}"
+        f"&workflow={test_workflow.name}"
         f"&kwargs={dict_to_base64(dict(a=2, b='abc'))}"
     )
     assert response.status_code == 200
@@ -88,7 +87,7 @@ def test_query_with_wrong_kwargs(api_client, one_line_scan, test_analysis_functi
     response = api_client.get(
         f"{reverse('analysis:result-list')}"
         f"?subjects={subjects_to_base64([one_line_scan])}"
-        f"&workflow={test_analysis_function.name}"
+        f"&workflow={test_workflow.name}"
         f"&kwargs={dict_to_base64(dict(a='2', b='abc'))}"
     )
     assert response.status_code == 200
@@ -99,19 +98,19 @@ def test_query_with_wrong_kwargs(api_client, one_line_scan, test_analysis_functi
     response = api_client.get(
         f"{reverse('analysis:result-list')}"
         f"?subjects={subjects_to_base64([one_line_scan])}"
-        f"&workflow={test_analysis_function.name}"
+        f"&workflow={test_workflow.name}"
         f"&kwargs={dict_to_base64(dict(a=2, c=7))}"
     )
     assert response.status_code == 400
     assert WorkflowResult.objects.count() == 2
 
 
-def test_query_with_partial_kwargs(api_client, one_line_scan, test_analysis_function):
+def test_query_with_partial_kwargs(api_client, one_line_scan, test_workflow):
     user = one_line_scan.created_by
     one_line_scan.grant_permission(user, "view")
     response = api_client.get(
         f"{reverse('analysis:result-list')}?topography={one_line_scan.id}"
-        f"&workflow={test_analysis_function.name}"
+        f"&workflow={test_workflow.name}"
     )
     assert response.status_code == 200, response.reason_phrase
     assert len(response.data["analyses"]) == 0
@@ -123,7 +122,7 @@ def test_query_with_partial_kwargs(api_client, one_line_scan, test_analysis_func
     response = api_client.get(
         f"{reverse('analysis:result-list')}"
         f"?subjects={subjects_to_base64([one_line_scan])}"
-        f"&workflow={test_analysis_function.name}"
+        f"&workflow={test_workflow.name}"
         f"&kwargs={dict_to_base64(dict(a=2))}"
     )
     assert response.status_code == 200
@@ -173,7 +172,7 @@ def test_function_info(api_client, user_alice, handle_usage_statistics):
 def test_query_tag_analysis(
     api_client,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     django_capture_on_commit_callbacks,
     handle_usage_statistics,
 ):
@@ -187,7 +186,7 @@ def test_query_tag_analysis(
     with django_capture_on_commit_callbacks(execute=True) as callbacks:
         response = api_client.get(
             f"{reverse('analysis:result-list')}?subjects="
-            f"{subjects_to_base64([tag])}&workflow={test_analysis_function.name}"
+            f"{subjects_to_base64([tag])}&workflow={test_workflow.name}"
         )
     assert len(callbacks) == 1
     assert WorkflowResult.objects.count() == 1
@@ -215,7 +214,7 @@ def test_query_tag_analysis(
         response = api_client.get(
             f"{reverse('analysis:result-list')}"
             f"?subjects={subjects_to_base64([tag])}"
-            f"&workflow={test_analysis_function.name}"
+            f"&workflow={test_workflow.name}"
         )
     assert len(callbacks) == 1
     assert WorkflowResult.objects.count() == 2
@@ -243,7 +242,7 @@ def test_query_tag_analysis(
     response = api_client.get(
         f"{reverse('analysis:result-list')}"
         f"?subjects={subjects_to_base64([tag])}"
-        f"&workflow={test_analysis_function.name}"
+        f"&workflow={test_workflow.name}"
         f"&kwargs={dict_to_base64(unique_kwargs)}"
     )
     assert response.status_code == 200
@@ -253,13 +252,13 @@ def test_query_tag_analysis(
 
 @pytest.mark.django_db
 def test_query_with_unique_kwargs(
-    api_client, one_line_scan, test_analysis_function, handle_usage_statistics
+    api_client, one_line_scan, test_workflow, handle_usage_statistics
 ):
     user = one_line_scan.created_by
     one_line_scan.grant_permission(user, "view")
     response = api_client.get(
         f"{reverse('analysis:result-list')}?subjects="
-        f"{subjects_to_base64([one_line_scan])}&workflow={test_analysis_function.name}"
+        f"{subjects_to_base64([one_line_scan])}&workflow={test_workflow.name}"
     )
     assert response.status_code == 200
     assert len(response.data["analyses"]) == 0
@@ -269,7 +268,7 @@ def test_query_with_unique_kwargs(
     response = api_client.get(
         f"{reverse('analysis:result-list')}"
         f"?subjects={subjects_to_base64([one_line_scan])}"
-        f"&workflow={test_analysis_function.name}"
+        f"&workflow={test_workflow.name}"
     )
     assert response.status_code == 200
     assert len(response.data["analyses"]) == 1
@@ -282,7 +281,7 @@ def test_query_with_unique_kwargs(
     response = api_client.get(
         f"{reverse('analysis:result-list')}"
         f"?subjects={subjects_to_base64([one_line_scan])}"
-        f"&workflow={test_analysis_function.name}"
+        f"&workflow={test_workflow.name}"
         f"&kwargs={dict_to_base64(unique_kwargs)}"
     )
     assert response.status_code == 200
@@ -299,7 +298,7 @@ def test_query_with_error(
     handle_usage_statistics,
 ):
     user = one_line_scan.created_by
-    function = Workflow.objects.get(name="topobank.testing.test_error")
+    function = Workflow(name="topobank.testing.test_error")
 
     # Login
     api_client.force_login(user)
@@ -340,9 +339,7 @@ def test_query_with_error_in_dependency(
     handle_usage_statistics,
 ):
     user = one_line_scan.created_by
-    function = Workflow.objects.get(
-        name="topobank.testing.test_error_in_dependency"
-    )
+    function = Workflow(name="topobank.testing.test_error_in_dependency")
 
     # Login
     api_client.force_login(user)
@@ -380,7 +377,7 @@ def test_query_with_error_in_dependency(
 def test_save_tag_analysis(
     api_client,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     django_capture_on_commit_callbacks,
     handle_usage_statistics,
 ):
@@ -397,7 +394,7 @@ def test_save_tag_analysis(
         response = api_client.get(
             f"{reverse('analysis:result-list')}"
             f"?subjects={subjects_to_base64([tag])}"
-            f"&workflow={test_analysis_function.name}"
+            f"&workflow={test_workflow.name}"
         )
     assert len(callbacks) == 1
     assert WorkflowResult.objects.count() == 1
@@ -426,7 +423,7 @@ def test_save_tag_analysis(
         response = api_client.get(
             f"{reverse('analysis:result-list')}"
             f"?subjects={subjects_to_base64([tag])}"
-            f"&workflow={test_analysis_function.name}"
+            f"&workflow={test_workflow.name}"
         )
     assert len(callbacks) == 1
     assert WorkflowResult.objects.count() == 2  # We now have two
@@ -452,7 +449,7 @@ def test_save_tag_analysis(
 def test_query_pending(
     api_client,
     one_line_scan,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics,
 ):
     user = one_line_scan.created_by
@@ -467,7 +464,7 @@ def test_query_pending(
     api_client.get(
         f"{reverse('analysis:result-list')}"
         f"?subjects={subjects_to_base64([tag])}"
-        f"&workflow={test_analysis_function.name}"
+        f"&workflow={test_workflow.name}"
     )
 
     # We need to ensure the WorkflowResult has a submission time recently,
@@ -484,7 +481,7 @@ def test_query_pending(
 
 @pytest.mark.django_db
 def test_query_with_not_implemented_subject(
-    api_client, one_line_scan, test_analysis_function
+    api_client, one_line_scan, test_workflow
 ):
     user = one_line_scan.created_by
     one_line_scan.grant_permission(user, "view")

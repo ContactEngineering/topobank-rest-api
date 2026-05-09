@@ -4,7 +4,6 @@ Test whether analyses are recalculated on certain events.
 
 import pytest
 from django.shortcuts import reverse
-
 from topobank.analysis.models import WorkflowResult
 from topobank.manager.models import Topography
 from topobank.testing.factories import (
@@ -54,7 +53,7 @@ from topobank.testing.factories import (
 def test_analysis_removal_on_topography_change(
     api_client,
     django_capture_on_commit_callbacks,
-    test_analysis_function,
+    test_workflow,
     handle_usage_statistics,
     changed_values_dict,
     response_code,
@@ -71,7 +70,7 @@ def test_analysis_removal_on_topography_change(
         instrument_type=Topography.INSTRUMENT_TYPE_CONTACT_BASED,
         instrument_parameters={"tip_radius": {"value": 1.0, "unit": "mm"}},
     )
-    TopographyAnalysisFactory(subject_topography=topo, function=test_analysis_function)
+    TopographyAnalysisFactory(subject_topography=topo, workflow_name=test_workflow.name)
 
     assert WorkflowResult.objects.filter(subject_dispatch__topography=topo).count() == 1
 
@@ -137,7 +136,7 @@ def test_analysis_removal_on_topography_change(
 
 @pytest.mark.django_db
 def test_analysis_removal_on_topography_deletion(
-    api_client, test_analysis_function, handle_usage_statistics
+    api_client, test_workflow, handle_usage_statistics
 ):
     """Check whether surface analyses are deleted if topography is deleted."""
 
@@ -145,9 +144,9 @@ def test_analysis_removal_on_topography_deletion(
     surface = SurfaceFactory(created_by=user)
     topo = Topography1DFactory(surface=surface, created_by=user)
 
-    TopographyAnalysisFactory(subject_topography=topo, function=test_analysis_function, created_by=user)
-    SurfaceAnalysisFactory(subject_surface=surface, function=test_analysis_function, created_by=user)
-    SurfaceAnalysisFactory(subject_surface=surface, function=test_analysis_function, created_by=user)
+    TopographyAnalysisFactory(subject_topography=topo, workflow_name=test_workflow.name, created_by=user)
+    SurfaceAnalysisFactory(subject_surface=surface, workflow_name=test_workflow.name, created_by=user)
+    SurfaceAnalysisFactory(subject_surface=surface, workflow_name=test_workflow.name, created_by=user)
 
     assert (
         WorkflowResult.objects.filter(subject_dispatch__topography=topo.id).count() == 1

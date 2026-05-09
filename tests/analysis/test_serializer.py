@@ -1,18 +1,18 @@
 import pytest
 from django.utils.duration import duration_string
-
-from topobank_rest_api.analysis.serializers import ResultSerializer
 from topobank.manager.models import Tag
 from topobank.testing.factories import AnalysisFactory
 from topobank.testing.utils import ASSERT_EQUAL_IGNORE_VALUE, assert_dict_equal
 
+from topobank_rest_api.analysis.serializers import ResultSerializer
+
 
 @pytest.mark.django_db
-def test_serializer_subject_topography(api_rf, one_line_scan, test_analysis_function):
+def test_serializer_subject_topography(api_rf, one_line_scan, test_workflow):
     topo = one_line_scan
     request = api_rf.get("/")
     analysis = AnalysisFactory(
-        subject_topography=topo, user=topo.created_by, function=test_analysis_function
+        subject_topography=topo, user=topo.created_by, workflow_name=test_workflow.name
     )
     data = ResultSerializer(analysis, context={"request": request}).data
     assert_dict_equal(
@@ -21,7 +21,7 @@ def test_serializer_subject_topography(api_rf, one_line_scan, test_analysis_func
             "id": analysis.id,
             "api": ASSERT_EQUAL_IGNORE_VALUE,
             "url": f"http://testserver/analysis/api/result/{analysis.id}/",
-            "function": f"http://testserver/analysis/api/workflow/{test_analysis_function.name}/",
+            "function": f"http://testserver/analysis/api/workflow/{test_workflow.name}/",
             "subject": {
                 "id": analysis.subject_dispatch.id,
                 "tag": None,
@@ -53,7 +53,7 @@ def test_serializer_subject_topography(api_rf, one_line_scan, test_analysis_func
 
 
 @pytest.mark.django_db
-def test_serializer_subject_tag(api_rf, one_line_scan, test_analysis_function):
+def test_serializer_subject_tag(api_rf, one_line_scan, test_workflow):
     topo = one_line_scan
     topo.tags = ["my-tag"]
     topo.save()
@@ -62,7 +62,7 @@ def test_serializer_subject_tag(api_rf, one_line_scan, test_analysis_function):
     tag.authorize_user(topo.created_by)
     request = api_rf.get("/")
     analysis = AnalysisFactory(
-        subject_tag=tag, user=topo.created_by, function=test_analysis_function
+        subject_tag=tag, user=topo.created_by, workflow_name=test_workflow.name
     )
     data = ResultSerializer(analysis, context={"request": request}).data
     assert_dict_equal(
@@ -71,7 +71,7 @@ def test_serializer_subject_tag(api_rf, one_line_scan, test_analysis_function):
             "id": analysis.id,
             "api": ASSERT_EQUAL_IGNORE_VALUE,
             "url": f"http://testserver/analysis/api/result/{analysis.id}/",
-            "function": f"http://testserver/analysis/api/workflow/{test_analysis_function.name}/",
+            "function": f"http://testserver/analysis/api/workflow/{test_workflow.name}/",
             "subject": {
                 "id": analysis.subject_dispatch.id,
                 "tag": f"http://testserver/manager/api/tag/{tag.name}/",

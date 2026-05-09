@@ -1,13 +1,7 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
-from topobank.analysis.models import (
-    Configuration,
-    Workflow,
-    WorkflowResult,
-    WorkflowSubject,
-    WorkflowTemplate,
-)
+from topobank.analysis.models import Configuration, WorkflowResult, WorkflowSubject
 from topobank.manager.models import Surface, Tag, Topography
 
 import topobank_rest_api.taskapp.serializers
@@ -31,46 +25,26 @@ class ConfigurationSerializer(StrictFieldMixin, serializers.HyperlinkedModelSeri
         return versions
 
 
-class WorkflowListSerializer(
-    StrictFieldMixin, serializers.HyperlinkedModelSerializer
-):
-    """Serializer for Workflow model."""
-    class Meta:
-        model = Workflow
-        fields = [
-            "url",
-            "name",
-            "display_name",
-        ]
+class WorkflowListSerializer(StrictFieldMixin, serializers.Serializer):
+    """Serializer for Workflow (plain Python class, not a DB model)."""
 
     url = serializers.HyperlinkedIdentityField(
         view_name="analysis:workflow-detail", lookup_field="name", read_only=True
     )
+    name = serializers.CharField(read_only=True)
+    display_name = serializers.CharField(read_only=True)
 
 
-class WorkflowDetailSerializer(
-    StrictFieldMixin, serializers.HyperlinkedModelSerializer
-):
-    """Serializer for Workflow model."""
-    class Meta:
-        model = Workflow
-        fields = [
-            "url",
-            "name",
-            "display_name",
-            "subject_types",
-            "kwargs_schema",
-            "outputs_schema",
-        ]
+class WorkflowDetailSerializer(StrictFieldMixin, serializers.Serializer):
+    """Serializer for Workflow (plain Python class, not a DB model)."""
 
     url = serializers.HyperlinkedIdentityField(
         view_name="analysis:workflow-detail", lookup_field="name", read_only=True
     )
-
+    name = serializers.CharField(read_only=True)
+    display_name = serializers.CharField(read_only=True)
     subject_types = serializers.SerializerMethodField()
-
     kwargs_schema = serializers.SerializerMethodField()
-
     outputs_schema = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.ListField(child=serializers.CharField()))
@@ -153,6 +127,7 @@ class ResultSerializer(
     )
     dependencies_url = serializers.SerializerMethodField()
     api = serializers.SerializerMethodField()
+    # WorkflowResult.function is a property returning Workflow(name=...) — read-only URL
     function = serializers.HyperlinkedRelatedField(
         view_name="analysis:workflow-detail", lookup_field="name", read_only=True
     )
@@ -191,28 +166,3 @@ class ResultSerializer(
             kwargs={"workflow_id": obj.id},
             request=self.context["request"],
         )
-
-
-class WorkflowTemplateSerializer(
-    StrictFieldMixin, serializers.HyperlinkedModelSerializer
-):
-    class Meta:
-        model = WorkflowTemplate
-        fields = [
-            "id",
-            "name",
-            "kwargs",
-            "implementation",
-            "creator",
-        ]
-
-    implementation = serializers.HyperlinkedRelatedField(
-        view_name="analysis:workflow-detail",
-        lookup_field="name",
-        queryset=Workflow.objects.all(),
-        allow_null=True,
-    )
-
-    creator = serializers.HyperlinkedRelatedField(
-        view_name="users:user-v1-detail", read_only=True
-    )

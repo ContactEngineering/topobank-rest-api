@@ -1,7 +1,10 @@
 import pytest
 from rest_framework.exceptions import ValidationError
-
 from topobank.analysis.models import WorkflowResult
+from topobank.manager.models import Tag
+from topobank.taskapp.models import Configuration, Dependency, Version
+from topobank.testing.factories import SurfaceFactory, TagFactory, Topography1DFactory
+
 from topobank_rest_api.analysis.serializers import WorkflowListSerializer
 from topobank_rest_api.analysis.v2.serializers import (
     ConfigurationV2Serializer,
@@ -10,9 +13,6 @@ from topobank_rest_api.analysis.v2.serializers import (
     ResultV2DetailSerializer,
     ResultV2ListSerializer,
 )
-from topobank.manager.models import Tag
-from topobank.taskapp.models import Configuration, Dependency, Version
-from topobank.testing.factories import SurfaceFactory, TagFactory, Topography1DFactory
 
 
 @pytest.mark.django_db
@@ -57,10 +57,10 @@ def test_configuration_v2_serializer_empty_versions(api_rf):
 
 
 @pytest.mark.django_db
-def test_workflow_v2_serializer(api_rf, test_analysis_function):
+def test_workflow_v2_serializer(api_rf, test_workflow):
     """Test WorkflowListSerializer serializes workflow correctly"""
     request = api_rf.get("/")
-    workflow = test_analysis_function
+    workflow = test_workflow
 
     serializer = WorkflowListSerializer(workflow, context={"request": request})
     data = serializer.data
@@ -72,31 +72,17 @@ def test_workflow_v2_serializer(api_rf, test_analysis_function):
 
 
 @pytest.mark.django_db
-def test_result_v2_create_serializer_validate_function_by_id(
-    api_rf, user_alice, test_analysis_function
-):
-    """Test ResultV2CreateSerializer validates function by ID"""
-    request = api_rf.get("/")
-    request.user = user_alice
-
-    serializer = ResultV2CreateSerializer(context={"request": request})
-    workflow = serializer.validate_function(test_analysis_function.id)
-
-    assert workflow == test_analysis_function
-
-
-@pytest.mark.django_db
 def test_result_v2_create_serializer_validate_function_by_name(
-    api_rf, user_alice, test_analysis_function
+    api_rf, user_alice, test_workflow
 ):
     """Test ResultV2CreateSerializer validates function by name"""
     request = api_rf.get("/")
     request.user = user_alice
 
     serializer = ResultV2CreateSerializer(context={"request": request})
-    workflow = serializer.validate_function(test_analysis_function.name)
+    workflow = serializer.validate_function(test_workflow.name)
 
-    assert workflow == test_analysis_function
+    assert workflow == test_workflow
 
 
 @pytest.mark.django_db
@@ -142,7 +128,7 @@ def test_result_v2_create_serializer_validate_subject_type_invalid(api_rf, user_
 
 @pytest.mark.django_db
 def test_result_v2_create_serializer_validate_surface_subject(
-    api_rf, user_alice, test_analysis_function
+    api_rf, user_alice, test_workflow
 ):
     """Test ResultV2CreateSerializer validates surface subject"""
     request = api_rf.get("/")
@@ -152,7 +138,7 @@ def test_result_v2_create_serializer_validate_surface_subject(
 
     serializer = ResultV2CreateSerializer(context={"request": request})
     data = {
-        "function": test_analysis_function,
+        "function": test_workflow,
         "subject": surface.id,
         "subject_type": "surface",
     }
@@ -163,7 +149,7 @@ def test_result_v2_create_serializer_validate_surface_subject(
 
 @pytest.mark.django_db
 def test_result_v2_create_serializer_validate_surface_subject_no_permission(
-    api_rf, user_alice, user_bob, test_analysis_function
+    api_rf, user_alice, user_bob, test_workflow
 ):
     """Test ResultV2CreateSerializer rejects surface without permission"""
     request = api_rf.get("/")
@@ -174,7 +160,7 @@ def test_result_v2_create_serializer_validate_surface_subject_no_permission(
 
     serializer = ResultV2CreateSerializer(context={"request": request})
     data = {
-        "function": test_analysis_function,
+        "function": test_workflow,
         "subject": surface.id,
         "subject_type": "surface",
     }
@@ -187,7 +173,7 @@ def test_result_v2_create_serializer_validate_surface_subject_no_permission(
 
 @pytest.mark.django_db
 def test_result_v2_create_serializer_validate_surface_subject_string_invalid(
-    api_rf, user_alice, test_analysis_function
+    api_rf, user_alice, test_workflow
 ):
     """Test ResultV2CreateSerializer rejects non-integer surface ID"""
     request = api_rf.get("/")
@@ -195,7 +181,7 @@ def test_result_v2_create_serializer_validate_surface_subject_string_invalid(
 
     serializer = ResultV2CreateSerializer(context={"request": request})
     data = {
-        "function": test_analysis_function,
+        "function": test_workflow,
         "subject": "not-an-integer",
         "subject_type": "surface",
     }
@@ -209,7 +195,7 @@ def test_result_v2_create_serializer_validate_surface_subject_string_invalid(
 
 @pytest.mark.django_db
 def test_result_v2_create_serializer_validate_topography_subject(
-    api_rf, user_alice, test_analysis_function
+    api_rf, user_alice, test_workflow
 ):
     """Test ResultV2CreateSerializer validates topography subject"""
     request = api_rf.get("/")
@@ -220,7 +206,7 @@ def test_result_v2_create_serializer_validate_topography_subject(
 
     serializer = ResultV2CreateSerializer(context={"request": request})
     data = {
-        "function": test_analysis_function,
+        "function": test_workflow,
         "subject": topo.id,
         "subject_type": "topography",
     }
@@ -231,7 +217,7 @@ def test_result_v2_create_serializer_validate_topography_subject(
 
 @pytest.mark.django_db
 def test_result_v2_create_serializer_validate_topography_subject_no_permission(
-    api_rf, user_alice, user_bob, test_analysis_function
+    api_rf, user_alice, user_bob, test_workflow
 ):
     """Test ResultV2CreateSerializer rejects topography without permission"""
     request = api_rf.get("/")
@@ -242,7 +228,7 @@ def test_result_v2_create_serializer_validate_topography_subject_no_permission(
 
     serializer = ResultV2CreateSerializer(context={"request": request})
     data = {
-        "function": test_analysis_function,
+        "function": test_workflow,
         "subject": topo.id,
         "subject_type": "topography",
     }
@@ -255,7 +241,7 @@ def test_result_v2_create_serializer_validate_topography_subject_no_permission(
 
 @pytest.mark.django_db
 def test_result_v2_create_serializer_validate_tag_subject_by_id(
-    api_rf, user_alice, test_analysis_function
+    api_rf, user_alice, test_workflow
 ):
     """Test ResultV2CreateSerializer validates tag subject by ID"""
     request = api_rf.get("/")
@@ -267,7 +253,7 @@ def test_result_v2_create_serializer_validate_tag_subject_by_id(
 
     serializer = ResultV2CreateSerializer(context={"request": request})
     data = {
-        "function": test_analysis_function,
+        "function": test_workflow,
         "subject": tag.id,
         "subject_type": "tag",
     }
@@ -278,7 +264,7 @@ def test_result_v2_create_serializer_validate_tag_subject_by_id(
 
 @pytest.mark.django_db
 def test_result_v2_create_serializer_validate_tag_subject_by_name(
-    api_rf, user_alice, test_analysis_function
+    api_rf, user_alice, test_workflow
 ):
     """Test ResultV2CreateSerializer validates tag subject by name"""
     request = api_rf.get("/")
@@ -290,7 +276,7 @@ def test_result_v2_create_serializer_validate_tag_subject_by_name(
 
     serializer = ResultV2CreateSerializer(context={"request": request})
     data = {
-        "function": test_analysis_function,
+        "function": test_workflow,
         "subject": "test-tag",
         "subject_type": "tag",
     }
@@ -301,7 +287,7 @@ def test_result_v2_create_serializer_validate_tag_subject_by_name(
 
 @pytest.mark.django_db
 def test_result_v2_create_serializer_validate_tag_subject_no_permission(
-    api_rf, user_alice, user_bob, test_analysis_function
+    api_rf, user_alice, user_bob, test_workflow
 ):
     """Test ResultV2CreateSerializer rejects tag without permission"""
     request = api_rf.get("/")
@@ -313,7 +299,7 @@ def test_result_v2_create_serializer_validate_tag_subject_no_permission(
 
     serializer = ResultV2CreateSerializer(context={"request": request})
     data = {
-        "function": test_analysis_function,
+        "function": test_workflow,
         "subject": tag.id,
         "subject_type": "tag",
     }
@@ -326,7 +312,7 @@ def test_result_v2_create_serializer_validate_tag_subject_no_permission(
 
 @pytest.mark.django_db
 def test_result_v2_create_serializer_validate_tag_subject_no_surfaces(
-    api_rf, user_alice, test_analysis_function
+    api_rf, user_alice, test_workflow
 ):
     """Test ResultV2CreateSerializer rejects tag with no accessible surfaces"""
     request = api_rf.get("/")
@@ -338,7 +324,7 @@ def test_result_v2_create_serializer_validate_tag_subject_no_surfaces(
 
     serializer = ResultV2CreateSerializer(context={"request": request})
     data = {
-        "function": test_analysis_function,
+        "function": test_workflow,
         "subject": tag.id,
         "subject_type": "tag",
     }
@@ -352,7 +338,7 @@ def test_result_v2_create_serializer_validate_tag_subject_no_surfaces(
 
 @pytest.mark.django_db
 def test_result_v2_create_serializer_validate_tag_subject_not_found(
-    api_rf, user_alice, test_analysis_function
+    api_rf, user_alice, test_workflow
 ):
     """Test ResultV2CreateSerializer rejects nonexistent tag"""
     request = api_rf.get("/")
@@ -360,7 +346,7 @@ def test_result_v2_create_serializer_validate_tag_subject_not_found(
 
     serializer = ResultV2CreateSerializer(context={"request": request})
     data = {
-        "function": test_analysis_function,
+        "function": test_workflow,
         "subject": "nonexistent-tag",
         "subject_type": "tag",
     }
@@ -372,7 +358,7 @@ def test_result_v2_create_serializer_validate_tag_subject_not_found(
 
 
 @pytest.mark.django_db
-def test_result_v2_create_serializer_create(api_rf, user_alice, test_analysis_function):
+def test_result_v2_create_serializer_create(api_rf, user_alice, test_workflow):
     """Test ResultV2CreateSerializer creates WorkflowResult correctly"""
     request = api_rf.get("/")
     request.user = user_alice
@@ -382,7 +368,7 @@ def test_result_v2_create_serializer_create(api_rf, user_alice, test_analysis_fu
 
     serializer = ResultV2CreateSerializer(context={"request": request})
     data = {
-        "function": test_analysis_function,
+        "function": test_workflow,
         "subject": topo.id,
         "subject_type": "topography",
         "kwargs": {"param1": "value1"},
@@ -395,7 +381,7 @@ def test_result_v2_create_serializer_create(api_rf, user_alice, test_analysis_fu
     result = serializer.create(validated_data)
 
     assert isinstance(result, WorkflowResult)
-    assert result.function == test_analysis_function
+    assert result.function == test_workflow
     assert result.subject_dispatch.topography == topo
     assert result.kwargs == {"param1": "value1"}
     assert result.task_state == WorkflowResult.NOTRUN
@@ -405,7 +391,7 @@ def test_result_v2_create_serializer_create(api_rf, user_alice, test_analysis_fu
 
 @pytest.mark.django_db
 def test_result_v2_create_serializer_create_with_surface(
-    api_rf, user_alice, test_analysis_function
+    api_rf, user_alice, test_workflow
 ):
     """Test ResultV2CreateSerializer creates WorkflowResult with surface subject"""
     request = api_rf.get("/")
@@ -415,7 +401,7 @@ def test_result_v2_create_serializer_create_with_surface(
 
     serializer = ResultV2CreateSerializer(context={"request": request})
     data = {
-        "function": test_analysis_function,
+        "function": test_workflow,
         "subject": surface.id,
         "subject_type": "surface",
     }
@@ -430,7 +416,7 @@ def test_result_v2_create_serializer_create_with_surface(
 
 
 @pytest.mark.django_db
-def test_result_v2_create_serializer_create_with_tag(api_rf, user_alice, test_analysis_function):
+def test_result_v2_create_serializer_create_with_tag(api_rf, user_alice, test_workflow):
     """Test ResultV2CreateSerializer creates WorkflowResult with tag subject"""
     request = api_rf.get("/")
     request.user = user_alice
@@ -441,7 +427,7 @@ def test_result_v2_create_serializer_create_with_tag(api_rf, user_alice, test_an
 
     serializer = ResultV2CreateSerializer(context={"request": request})
     data = {
-        "function": test_analysis_function,
+        "function": test_workflow,
         "subject": tag.id,
         "subject_type": "tag",
     }
@@ -456,7 +442,7 @@ def test_result_v2_create_serializer_create_with_tag(api_rf, user_alice, test_an
 
 
 @pytest.mark.django_db
-def test_result_v2_list_serializer(api_rf, one_line_scan, test_analysis_function):
+def test_result_v2_list_serializer(api_rf, one_line_scan, test_workflow):
     """Test ResultV2ListSerializer serializes WorkflowResult correctly"""
     from topobank.testing.factories import AnalysisFactory
 
@@ -465,7 +451,7 @@ def test_result_v2_list_serializer(api_rf, one_line_scan, test_analysis_function
     request.user = topo.created_by
 
     analysis = AnalysisFactory(
-        subject_topography=topo, user=topo.created_by, function=test_analysis_function
+        subject_topography=topo, user=topo.created_by, workflow_name=test_workflow.name
     )
 
     serializer = ResultV2ListSerializer(analysis, context={"request": request})
@@ -475,7 +461,7 @@ def test_result_v2_list_serializer(api_rf, one_line_scan, test_analysis_function
     assert "url" in data
     assert data["url"] == f"http://testserver/analysis/v2/results/{analysis.id}/"
     assert "function" in data
-    assert data["function"]["name"] == test_analysis_function.name
+    assert data["function"]["name"] == test_workflow.name
     assert "subject" in data
     assert "created_at" in data
     assert "updated_at" in data
@@ -487,7 +473,7 @@ def test_result_v2_list_serializer(api_rf, one_line_scan, test_analysis_function
 
 
 @pytest.mark.django_db
-def test_result_v2_detail_serializer(api_rf, one_line_scan, test_analysis_function):
+def test_result_v2_detail_serializer(api_rf, one_line_scan, test_workflow):
     """Test ResultV2DetailSerializer serializes WorkflowResult with full details"""
     from topobank.testing.factories import AnalysisFactory
 
@@ -496,7 +482,7 @@ def test_result_v2_detail_serializer(api_rf, one_line_scan, test_analysis_functi
     request.user = topo.created_by
 
     analysis = AnalysisFactory(
-        subject_topography=topo, user=topo.created_by, function=test_analysis_function
+        subject_topography=topo, user=topo.created_by, workflow_name=test_workflow.name
     )
 
     serializer = ResultV2DetailSerializer(analysis, context={"request": request})
@@ -541,7 +527,7 @@ def test_result_v2_detail_serializer(api_rf, one_line_scan, test_analysis_functi
 
 @pytest.mark.django_db
 def test_result_v2_detail_serializer_name_description_writable(
-    api_rf, one_line_scan, test_analysis_function
+    api_rf, one_line_scan, test_workflow
 ):
     """Test ResultV2DetailSerializer allows updating name and description"""
     from topobank.testing.factories import AnalysisFactory
@@ -550,7 +536,7 @@ def test_result_v2_detail_serializer_name_description_writable(
     topo = one_line_scan
 
     analysis = AnalysisFactory(
-        subject_topography=topo, user=topo.created_by, function=test_analysis_function
+        subject_topography=topo, user=topo.created_by, workflow_name=test_workflow.name
     )
 
     serializer = ResultV2DetailSerializer(
@@ -579,7 +565,7 @@ def test_dependency_v2_list_serializer_empty(api_rf):
 
 @pytest.mark.django_db
 def test_dependency_v2_list_serializer_with_dependencies(
-    api_rf, one_line_scan, test_analysis_function
+    api_rf, one_line_scan, test_workflow
 ):
     """Test DependencyV2ListSerializer serializes dependencies correctly"""
     from topobank.testing.factories import AnalysisFactory
@@ -589,10 +575,10 @@ def test_dependency_v2_list_serializer_with_dependencies(
 
     # Create a workflow result
     analysis1 = AnalysisFactory(
-        subject_topography=topo, user=topo.created_by, function=test_analysis_function
+        subject_topography=topo, user=topo.created_by, workflow_name=test_workflow.name
     )
     analysis2 = AnalysisFactory(
-        subject_topography=topo, user=topo.created_by, function=test_analysis_function
+        subject_topography=topo, user=topo.created_by, workflow_name=test_workflow.name
     )
 
     # Create dependencies dict
@@ -635,7 +621,7 @@ def test_dependency_v2_list_serializer_missing_workflow_result(api_rf):
 
 @pytest.mark.django_db
 def test_dependency_v2_list_serializer_partial_missing(
-    api_rf, one_line_scan, test_analysis_function
+    api_rf, one_line_scan, test_workflow
 ):
     """Test DependencyV2ListSerializer with some missing WorkflowResults"""
     from topobank.testing.factories import AnalysisFactory
@@ -644,7 +630,7 @@ def test_dependency_v2_list_serializer_partial_missing(
     topo = one_line_scan
 
     analysis1 = AnalysisFactory(
-        subject_topography=topo, user=topo.created_by, function=test_analysis_function
+        subject_topography=topo, user=topo.created_by, workflow_name=test_workflow.name
     )
 
     # Mix of existing and non-existing workflow results
