@@ -72,7 +72,7 @@ def test_analysis_removal_on_topography_change(
     )
     TopographyAnalysisFactory(subject_topography=topo, workflow_name=test_workflow.name)
 
-    assert WorkflowResult.objects.filter(subject_dispatch__topography=topo).count() == 1
+    assert WorkflowResult.objects.filter(subject_topography=topo).count() == 1
 
     api_client.force_login(user)
 
@@ -110,7 +110,7 @@ def test_analysis_removal_on_topography_change(
     # Nothing changed, so no callbacks
 
     # Check that analysis still exists
-    assert WorkflowResult.objects.filter(subject_dispatch__topography=topo).count() == 1
+    assert WorkflowResult.objects.filter(subject_topography=topo).count() == 1
 
     #
     # Now we post the changed data, some action (=callbacks) should be triggered
@@ -128,7 +128,7 @@ def test_analysis_removal_on_topography_change(
     if response_code == 200:
         assert (
             WorkflowResult.objects.filter(
-                subject_dispatch__topography=topo, deprecation_time__isnull=False
+                subject_topography=topo, deprecation_time__isnull=False
             ).count()
             == 1
         )
@@ -149,10 +149,10 @@ def test_analysis_removal_on_topography_deletion(
     SurfaceAnalysisFactory(subject_surface=surface, workflow_name=test_workflow.name, created_by=user)
 
     assert (
-        WorkflowResult.objects.filter(subject_dispatch__topography=topo.id).count() == 1
+        WorkflowResult.objects.filter(subject_topography=topo.id).count() == 1
     )
     assert (
-        WorkflowResult.objects.filter(subject_dispatch__surface=surface.id).count() == 2
+        WorkflowResult.objects.filter(subject_surface=surface.id).count() == 2
     )
 
     assert surface.topography_set.count() == 1
@@ -171,10 +171,10 @@ def test_analysis_removal_on_topography_deletion(
     assert surface.topography_set.count() == 0
 
     # No more topography analyses left
-    assert WorkflowResult.objects.filter(subject_dispatch__topography=topo).count() == 0
+    assert WorkflowResult.objects.filter(subject_topography=topo).count() == 0
 
     # No more surface analyses left, because the surface no longer has topographies
     # The analysis of the surface is not deleting in this test, because the analysis
     # does not actually run. (Analysis run `on_commit`, but this is never triggered in
     # this test.)
-    # assert Analysis.objects.filter(subject_dispatch__surface=surface).count() == 0
+    # assert Analysis.objects.filter(subject_surface=surface).count() == 0

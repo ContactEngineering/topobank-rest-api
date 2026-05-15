@@ -791,7 +791,7 @@ class SubjectField(serializers.RelatedField):
 
     Usage
     -----
-    Use this field whenever you need to represent a WorkflowSubject relationship::
+    Use this field whenever you need to represent a WorkflowResult subject::
 
         class ResultSerializer(serializers.ModelSerializer):
             subject = SubjectField(read_only=True)
@@ -831,7 +831,7 @@ class SubjectField(serializers.RelatedField):
     Notes
     -----
     - The 'type' field indicates whether the subject is a 'tag', 'surface', or 'topography'.
-        This is useful since the WorkflowSubject is a generic relation.
+        This is useful since the subject is stored as three optional FKs on WorkflowResult.
         (i.e., A surface and topography can both have the same ID and we need a way to distinguish them.)
     - This field requires a request context to generate URLs.
     - The 'view_name' is determined dynamically based on the subject type.
@@ -841,18 +841,24 @@ class SubjectField(serializers.RelatedField):
         super().__init__(**kwargs)
 
     def to_representation(self, obj):
-        # Handle both WorkflowSubject and direct subject objects (Tag/Topography/Surface)
-        from topobank.analysis.models import WorkflowSubject
+        from topobank.analysis.models import WorkflowResult
         from topobank.manager.models import Surface, Tag, Topography
 
-        if isinstance(obj, WorkflowSubject):
-            # If obj is a WorkflowSubject, get the actual subject
-            subject = obj.get()
+        if isinstance(obj, WorkflowResult):
+            # Read subject directly from WorkflowResult fields
+            if obj.subject_tag_id is not None:
+                subject = obj.subject_tag
+            elif obj.subject_topography_id is not None:
+                subject = obj.subject_topography
+            elif obj.subject_surface_id is not None:
+                subject = obj.subject_surface
+            else:
+                raise TypeError(f"WorkflowResult {obj.pk} has no subject set")
         elif isinstance(obj, (Tag, Topography, Surface)):
             # If obj is already a subject, use it directly
             subject = obj
         else:
-            raise TypeError(f"Expected WorkflowSubject or Tag/Topography/Surface, got {type(obj)}")
+            raise TypeError(f"Expected WorkflowResult or Tag/Topography/Surface, got {type(obj)}")
 
         subject_type = subject.__class__.__name__.lower()
         subject_id = subject.id

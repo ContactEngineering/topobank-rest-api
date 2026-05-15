@@ -89,9 +89,9 @@ class ResultViewFilterSet(FilterSet):
             return queryset
 
         return queryset.filter(
-            Q(subject_dispatch__tag_id__in=value)
-            | Q(subject_dispatch__topography_id__in=value)
-            | Q(subject_dispatch__surface_id__in=value)
+            Q(subject_tag_id__in=value)
+            | Q(subject_topography_id__in=value)
+            | Q(subject_surface_id__in=value)
         )
 
     def filter_subject_id(self, queryset, name, value):
@@ -103,9 +103,9 @@ class ResultViewFilterSet(FilterSet):
         if "subject_type" not in self.data:
             # No subject_type specified, search across all types
             return queryset.filter(
-                Q(subject_dispatch__tag_id=value)
-                | Q(subject_dispatch__topography_id=value)
-                | Q(subject_dispatch__surface_id=value)
+                Q(subject_tag_id=value)
+                | Q(subject_topography_id=value)
+                | Q(subject_surface_id=value)
             )
 
         return queryset
@@ -121,19 +121,19 @@ class ResultViewFilterSet(FilterSet):
 
         match value.lower():
             case "tag":
-                q = Q(subject_dispatch__tag__isnull=False)
+                q = Q(subject_tag__isnull=False)
                 if subject_id:
-                    q &= Q(subject_dispatch__tag_id=subject_id)
+                    q &= Q(subject_tag_id=subject_id)
                 return queryset.filter(q)
             case "surface":
-                q = Q(subject_dispatch__surface__isnull=False)
+                q = Q(subject_surface__isnull=False)
                 if subject_id:
-                    q &= Q(subject_dispatch__surface_id=subject_id)
+                    q &= Q(subject_surface_id=subject_id)
                 return queryset.filter(q)
             case "topography":
-                q = Q(subject_dispatch__topography__isnull=False)
+                q = Q(subject_topography__isnull=False)
                 if subject_id:
-                    q &= Q(subject_dispatch__topography_id=subject_id)
+                    q &= Q(subject_topography_id=subject_id)
                 return queryset.filter(q)
             case _:
                 return queryset.none()
@@ -151,9 +151,9 @@ class ResultViewFilterSet(FilterSet):
             Filtered queryset
         """
         return queryset.filter(
-            Q(subject_dispatch__tag__name__icontains=value)
-            | Q(subject_dispatch__surface__name__icontains=value)
-            | Q(subject_dispatch__topography__name__icontains=value)
+            Q(subject_tag__name__icontains=value)
+            | Q(subject_surface__name__icontains=value)
+            | Q(subject_topography__name__icontains=value)
         )
 
     def filter_tag_name(self, queryset, name, value):
@@ -168,7 +168,7 @@ class ResultViewFilterSet(FilterSet):
         Returns:
             Filtered queryset
         """
-        return queryset.filter(subject_dispatch__tag__name__icontains=value)
+        return queryset.filter(subject_tag__name__icontains=value)
 
     def filter_named(self, queryset, name, value):
         """

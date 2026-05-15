@@ -1,7 +1,7 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
-from topobank.analysis.models import Configuration, WorkflowResult, WorkflowSubject
+from topobank.analysis.models import Configuration, WorkflowResult
 from topobank.manager.models import Surface, Tag, Topography
 
 import topobank_rest_api.taskapp.serializers
@@ -67,14 +67,8 @@ class WorkflowDetailSerializer(StrictFieldMixin, serializers.Serializer):
         return obj.get_outputs_schema()
 
 
-class SubjectSerializer(
-    StrictFieldMixin, serializers.HyperlinkedModelSerializer
-):
-    """Serializer for WorkflowSubject model."""
-    class Meta:
-        model = WorkflowSubject
-        fields = ["id", "tag", "topography", "surface"]
-
+class SubjectSerializer(StrictFieldMixin, serializers.Serializer):
+    """Serializer for WorkflowResult subject fields."""
     tag = serializers.HyperlinkedRelatedField(
         view_name="manager:tag-api-detail", read_only=True, lookup_field="name"
     )
@@ -131,7 +125,7 @@ class ResultSerializer(
     function = serializers.HyperlinkedRelatedField(
         view_name="analysis:workflow-detail", lookup_field="name", read_only=True
     )
-    subject = SubjectSerializer(source="subject_dispatch", read_only=True)
+    subject = serializers.SerializerMethodField()
     folder = serializers.HyperlinkedRelatedField(
         view_name="files:folder-api-detail", read_only=True
     )
@@ -140,6 +134,42 @@ class ResultSerializer(
     )
     creation_time = serializers.DateTimeField(source="created_at", read_only=True)
     creator = UserField(source="created_by", read_only=True)
+
+    @extend_schema_field(SubjectSerializer)
+    def get_subject(self, obj: WorkflowResult):
+        request = self.context.get("request")
+        if obj.subject_topography_id:
+            return {
+                "topography": reverse(
+                    "manager:topography-api-detail",
+                    kwargs={"pk": obj.subject_topography_id},
+                    request=request,
+                ),
+                "surface": None,
+                "tag": None,
+            }
+        elif obj.subject_surface_id:
+            return {
+                "topography": None,
+                "surface": reverse(
+                    "manager:surface-api-detail",
+                    kwargs={"pk": obj.subject_surface_id},
+                    request=request,
+                ),
+                "tag": None,
+            }
+        elif obj.subject_tag_id:
+            tag = Tag.objects.get(pk=obj.subject_tag_id)
+            return {
+                "topography": None,
+                "surface": None,
+                "tag": reverse(
+                    "manager:tag-api-detail",
+                    kwargs={"name": tag.name},
+                    request=request,
+                ),
+            }
+        return None
 
     @extend_schema_field(
         {

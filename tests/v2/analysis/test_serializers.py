@@ -382,7 +382,7 @@ def test_result_v2_create_serializer_create(api_rf, user_alice, test_workflow):
 
     assert isinstance(result, WorkflowResult)
     assert result.function == test_workflow
-    assert result.subject_dispatch.topography == topo
+    assert result.subject_topography == topo
     assert result.kwargs == {"param1": "value1"}
     assert result.task_state == WorkflowResult.NOTRUN
     assert result.created_by == user_alice
@@ -412,7 +412,7 @@ def test_result_v2_create_serializer_create_with_surface(
 
     result = serializer.create(validated_data)
 
-    assert result.subject_dispatch.surface == surface
+    assert result.subject_surface == surface
 
 
 @pytest.mark.django_db
@@ -438,7 +438,7 @@ def test_result_v2_create_serializer_create_with_tag(api_rf, user_alice, test_wo
 
     result = serializer.create(validated_data)
 
-    assert result.subject_dispatch.tag == tag
+    assert result.subject_tag == tag
 
 
 @pytest.mark.django_db

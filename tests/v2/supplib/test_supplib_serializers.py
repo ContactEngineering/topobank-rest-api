@@ -6,12 +6,20 @@ including StrictFieldMixin, DynamicFieldsModelSerializer, PermissionsField,
 ModelRelatedField, and specialized fields like UserField, OrganizationField,
 SubjectField, ManifestField, and StringOrIntegerField.
 """
+
 import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
-
 from topobank.manager.models import Surface
+from topobank.testing.factories import (
+    ManifestFactory,
+    SurfaceFactory,
+    TagFactory,
+    Topography1DFactory,
+    UserFactory,
+)
+
 from topobank_rest_api.supplib.serializers import (
     DynamicFieldsModelSerializer,
     ManifestField,
@@ -22,14 +30,6 @@ from topobank_rest_api.supplib.serializers import (
     SubjectField,
     UserField,
 )
-from topobank.testing.factories import (
-    AnalysisSubjectFactory,
-    ManifestFactory,
-    SurfaceFactory,
-    TagFactory,
-    Topography1DFactory,
-    UserFactory,
-)
 
 # ============================================================================
 # Test DynamicFieldsModelSerializer
@@ -37,7 +37,7 @@ from topobank.testing.factories import (
 
 
 class DynamicTestSerializer(DynamicFieldsModelSerializer):
-    """Test serializer for DynamicFieldsModelSerializer."""
+    """Test serializer for DynamicFiegldsModelSerializer."""
 
     class Meta:
         model = Surface
@@ -260,7 +260,8 @@ def test_model_related_field_to_internal_value_neither_id_nor_url(api_rf):
     request = api_rf.get("/")
 
     field = ModelRelatedField(
-        view_name="users:user-v1-detail", queryset=UserFactory._meta.get_model_class().objects.all()
+        view_name="users:user-v1-detail",
+        queryset=UserFactory._meta.get_model_class().objects.all(),
     )
     field._context = {"request": request}
 
@@ -410,27 +411,6 @@ def test_subject_field_representation_tag(api_rf, user_alice):
     assert data["type"] == "tag"
     # Tags use name-based URL routing
     assert "/manager/api/" in data["url"]
-
-
-@pytest.mark.django_db
-def test_subject_field_representation_workflow_subject(api_rf, user_alice):
-    """Test SubjectField serializes WorkflowSubject wrapper correctly."""
-    surface = SurfaceFactory(created_by=user_alice)
-    workflow_subject = AnalysisSubjectFactory(surface=surface)
-    request = api_rf.get("/")
-
-    field = SubjectField(read_only=True)
-    field._context = {"request": request}
-
-    data = field.to_representation(workflow_subject)
-
-    assert "id" in data
-    assert "url" in data
-    assert "name" in data
-    assert "type" in data
-    assert data["id"] == surface.pk
-    assert data["name"] == surface.name
-    assert data["type"] == "surface"
 
 
 # ============================================================================

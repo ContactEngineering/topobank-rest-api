@@ -3,12 +3,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.reverse import reverse
-from topobank.analysis.models import (
-    Configuration,
-    WorkflowResult,
-    WorkflowSubject,
-    resolve_workflow,
-)
+from topobank.analysis.models import Configuration, WorkflowResult, resolve_workflow
 from topobank.manager.models import Surface, Tag, Topography
 
 import topobank_rest_api.taskapp.serializers as taskapp_serializers
@@ -79,21 +74,25 @@ class ResultV2CreateSerializer(serializers.ModelSerializer):
         owned_by = validated_data.pop("owned_by", None)
 
         with transaction.atomic():
-            # Create the WorkflowSubject
-            subject_dispatch = WorkflowSubject.objects.create(subject)
-
-            # Create the WorkflowResult instance
-            # NOTE: WorkflowResult model save method handles setting permissions
-            # and creating its folder
-            instance = WorkflowResult.objects.create(
+            create_kwargs = dict(
                 workflow_name=workflow.name,
-                subject_dispatch=subject_dispatch,
                 kwargs=validated_data.get("kwargs", {}),
                 task_state=WorkflowResult.NOTRUN,
                 created_by=created_by,
                 updated_by=updated_by,
                 owned_by=owned_by,
             )
+            if isinstance(subject, Tag):
+                create_kwargs["subject_tag"] = subject
+            elif isinstance(subject, Topography):
+                create_kwargs["subject_topography"] = subject
+            elif isinstance(subject, Surface):
+                create_kwargs["subject_surface"] = subject
+
+            # Create the WorkflowResult instance
+            # NOTE: WorkflowResult model save method handles setting permissions
+            # and creating its folder
+            instance = WorkflowResult.objects.create(**create_kwargs)
 
         # Return the created WorkflowResult instance
         return instance
@@ -409,10 +408,9 @@ class DependencyV2ListSerializer(serializers.BaseSerializer):
         workflow_results = WorkflowResult.objects.filter(
             id__in=workflow_result_ids
         ).select_related(
-            'subject_dispatch',
-            'subject_dispatch__tag',
-            'subject_dispatch__topography',
-            'subject_dispatch__surface'
+            'subject_tag',
+            'subject_topography',
+            'subject_surface',
         ).in_bulk()
 
         dependencies_list = []

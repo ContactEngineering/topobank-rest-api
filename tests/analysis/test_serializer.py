@@ -23,7 +23,6 @@ def test_serializer_subject_topography(api_rf, one_line_scan, test_workflow):
             "url": f"http://testserver/analysis/api/result/{analysis.id}/",
             "function": f"http://testserver/analysis/api/workflow/{test_workflow.name}/",
             "subject": {
-                "id": analysis.subject_dispatch.id,
                 "tag": None,
                 "topography": f"http://testserver/manager/api/topography/{topo.id}/",
                 "surface": None,
@@ -73,7 +72,6 @@ def test_serializer_subject_tag(api_rf, one_line_scan, test_workflow):
             "url": f"http://testserver/analysis/api/result/{analysis.id}/",
             "function": f"http://testserver/analysis/api/workflow/{test_workflow.name}/",
             "subject": {
-                "id": analysis.subject_dispatch.id,
                 "tag": f"http://testserver/manager/api/tag/{tag.name}/",
                 "topography": None,
                 "surface": None,

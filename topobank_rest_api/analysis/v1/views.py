@@ -107,9 +107,9 @@ class ResultView(
     """Retrieve status of analysis (GET) and renew analysis (PUT)"""
 
     queryset = WorkflowResult.objects.select_related(
-        "subject_dispatch__tag",
-        "subject_dispatch__topography",
-        "subject_dispatch__surface",
+        "subject_tag",
+        "subject_topography",
+        "subject_surface",
     ).order_by("-task_start_time")
     serializer_class = ResultSerializer
     pagination_class = LimitOffsetPagination
@@ -373,11 +373,11 @@ def series_card_view(request, **kwargs):
             ]
         )
 
-        if analysis.subject_dispatch.tag is not None:
+        if analysis.subject_tag is not None:
             nb_tags += 1
-        elif analysis.subject_dispatch.topography is not None:
+        elif analysis.subject_topography is not None:
             nb_topographies += 1
-        elif analysis.subject_dispatch.surface is not None:
+        elif analysis.subject_surface is not None:
             nb_surfaces += 1
         else:
             nb_others += 1
@@ -406,8 +406,8 @@ def series_card_view(request, **kwargs):
         #
         # Define some helper variables
         #
-        is_surface_analysis = analysis.subject_dispatch.surface is not None
-        is_topography_analysis = analysis.subject_dispatch.topography is not None
+        is_surface_analysis = analysis.subject_surface is not None
+        is_topography_analysis = analysis.subject_topography is not None
 
         #
         # Change display name depending on whether there is a parent analysis or not
@@ -415,13 +415,13 @@ def series_card_view(request, **kwargs):
         parent_analysis = None
         if (
             is_topography_analysis
-            and analysis.subject_dispatch.topography.surface.num_topographies() > 1
+            and analysis.subject_topography.surface.num_topographies() > 1
         ):
             for a in analyses_success_list:
                 if (
-                    a.subject_dispatch.surface is not None
-                    and a.subject_dispatch.surface.id
-                    == analysis.subject_dispatch.topography.surface.id
+                    a.subject_surface is not None
+                    and a.subject_surface.id
+                    == analysis.subject_topography.surface.id
                     and a.workflow_name == analysis.workflow_name
                 ):
                     parent_analysis = a
@@ -606,50 +606,50 @@ def memory_usage(request):
     for function_name in get_workflow_names():
         max_nb_data_pts = Case(
             When(
-                subject_dispatch__surface__isnull=False,
+                subject_surface__isnull=False,
                 then=Max(
-                    F("subject_dispatch__surface__topography__resolution_x")
+                    F("subject_surface__topography__resolution_x")
                     * Case(
                         When(
-                            subject_dispatch__surface__topography__resolution_y__isnull=False,
+                            subject_surface__topography__resolution_y__isnull=False,
                             then=F(
-                                "subject_dispatch__surface__topography__resolution_y"
+                                "subject_surface__topography__resolution_y"
                             ),
                         ),
                         default=1,
                     )
                 ),
             ),
-            default=F("subject_dispatch__topography__resolution_x")
+            default=F("subject_topography__resolution_x")
             * Case(
                 When(
-                    subject_dispatch__topography__resolution_y__isnull=False,
-                    then=F("subject_dispatch__topography__resolution_y"),
+                    subject_topography__resolution_y__isnull=False,
+                    then=F("subject_topography__resolution_y"),
                 ),
                 default=1,
             ),
         )
         sum_nb_data_pts = Case(
             When(
-                subject_dispatch__surface__isnull=False,
+                subject_surface__isnull=False,
                 then=Sum(
-                    F("subject_dispatch__surface__topography__resolution_x")
+                    F("subject_surface__topography__resolution_x")
                     * Case(
                         When(
-                            subject_dispatch__surface__topography__resolution_y__isnull=False,
+                            subject_surface__topography__resolution_y__isnull=False,
                             then=F(
-                                "subject_dispatch__surface__topography__resolution_y"
+                                "subject_surface__topography__resolution_y"
                             ),
                         ),
                         default=1,
                     )
                 ),
             ),
-            default=F("subject_dispatch__topography__resolution_x")
+            default=F("subject_topography__resolution_x")
             * Case(
                 When(
-                    subject_dispatch__topography__resolution_y__isnull=False,
-                    then=F("subject_dispatch__topography__resolution_y"),
+                    subject_topography__resolution_y__isnull=False,
+                    then=F("subject_topography__resolution_y"),
                 ),
                 default=1,
             ),
@@ -658,13 +658,13 @@ def memory_usage(request):
             WorkflowResult.objects.filter(workflow_name=function_name)
             .values("task_memory")
             .annotate(
-                resolution_x=F("subject_dispatch__topography__resolution_x"),
-                resolution_y=F("subject_dispatch__topography__resolution_y"),
+                resolution_x=F("subject_topography__resolution_x"),
+                resolution_y=F("subject_topography__resolution_y"),
                 task_duration=F("task_end_time") - F("task_start_time"),
                 subject=Case(
-                    When(subject_dispatch__tag__isnull=False, then=Value("tag")),
+                    When(subject_tag__isnull=False, then=Value("tag")),
                     When(
-                        subject_dispatch__surface__isnull=False, then=Value("surface")
+                        subject_surface__isnull=False, then=Value("surface")
                     ),
                     default=Value("topography"),
                 ),

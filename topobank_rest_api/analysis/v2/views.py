@@ -114,9 +114,9 @@ class ResultView(UserUpdateMixin, viewsets.ModelViewSet):
         # PermissionFilterBackend handles permission filtering with two-step optimization
         # We just apply business logic filters and optimizations here
         qs = WorkflowResult.objects.select_related(
-            "subject_dispatch__tag",
-            "subject_dispatch__topography",
-            "subject_dispatch__surface",
+            "subject_tag",
+            "subject_topography",
+            "subject_surface",
             "created_by",
             "updated_by",
             "permissions",
@@ -236,9 +236,9 @@ class ResultView(UserUpdateMixin, viewsets.ModelViewSet):
         # TO DISCUSS: `is_ready` means the topography has been processed and metadata extracted and stored
         # to the database, but the workflows can run before this has happened by directly opening the raw
         # data file. If a file is not readable, the workflows will fail.
-        # if not analysis.subject_dispatch.is_ready():
+        # if not analysis.subject.is_ready():
         #     return Response(
-        #         {"message": f"{analysis.subject_dispatch.get_type().__name__} subject(s) not ready."},
+        #         {"message": f"{analysis.subject.__class__.__name__} subject(s) not ready."},
         #         status=status.HTTP_400_BAD_REQUEST
         #     )
 
