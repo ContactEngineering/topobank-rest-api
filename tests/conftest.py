@@ -20,6 +20,12 @@ def add_to_default_group(sender, instance, created, **kwargs):
         instance.groups.add(group)
 
 
+@pytest.fixture(autouse=True)
+def _enable_db_access_for_all_tests(db):
+    """Restore the implicit database access previously provided by the removed
+    autouse ``sync_workflows`` fixture in ``topobank.testing.fixtures``."""
+
+
 @pytest.fixture(scope="session", autouse=True)
 def register_testing_workflows():
     from topobank.analysis.registry import register_implementation
