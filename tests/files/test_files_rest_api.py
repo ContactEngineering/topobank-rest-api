@@ -3,12 +3,15 @@ from pathlib import Path
 import pytest
 from django.core.files import File
 from rest_framework.reverse import reverse
-from topobank.files.models import ManifestSet, Manifest
+from topobank.files.models import Manifest, ManifestSet
 from topobank.files.utils import file_storage_path
 from topobank.testing.data import FIXTURE_DATA_DIR
-from topobank.testing.factories import ManifestSetFactory, ManifestFactory
+from topobank.testing.factories import ManifestFactory, ManifestSetFactory
+from topobank.testing.mock_auth.authorization.models import (
+    PermissionSet,
+    UserPermission,
+)
 from topobank.testing.utils import assert_dict_equal
-from topobank_orcid.authorization.models import PermissionSet, UserPermission
 
 from tests.utils import upload_file
 from topobank_rest_api.utils import get_api_url

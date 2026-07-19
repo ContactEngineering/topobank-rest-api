@@ -17,7 +17,7 @@ from topobank.testing.factories import (
     Topography2DFactory,
     UserFactory,
 )
-from topobank_orcid.authorization.models import PermissionSet
+from topobank.testing.mock_auth.authorization.models import PermissionSet
 
 from tests.utils import upload_file, upload_topography_file
 

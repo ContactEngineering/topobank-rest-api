@@ -5,7 +5,7 @@ from django.contrib.auth.models import Permission
 from django.urls import reverse
 from topobank.manager.models import Surface, Topography
 from topobank.testing.data import FIXTURE_DATA_DIR
-from topobank_orcid.authorization.models import PermissionSet
+from topobank.testing.mock_auth.authorization.models import PermissionSet
 
 
 @pytest.mark.django_db

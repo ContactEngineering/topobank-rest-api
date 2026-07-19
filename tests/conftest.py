@@ -9,13 +9,13 @@ from django.contrib.auth.models import Group
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from topobank.testing.fixtures import *  # noqa: F401, F403
-from topobank_orcid.users.models import User
+from topobank.testing.mock_auth.users.models import User
 
 
 @receiver(post_save, sender=User)
 def add_to_default_group(sender, instance, created, **kwargs):
     if created:
-        from topobank_orcid.organizations.models import DEFAULT_GROUP_NAME
+        from topobank.testing.mock_auth.organizations.models import DEFAULT_GROUP_NAME
         group, _ = Group.objects.get_or_create(name=DEFAULT_GROUP_NAME)
         instance.groups.add(group)
 
