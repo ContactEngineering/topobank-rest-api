@@ -363,9 +363,11 @@ def force_inspect(request, pk=None):
 
     _log.debug(f"Forcing renewal of cache for {instance}...")
 
-    # Force renewal of cache within transaction
+    # Force renewal of cache within transaction. `force=True` re-dispatches even
+    # when a task is already in-flight; without it `run_task` skips the dispatch
+    # (topobank SD-668), which would defeat the purpose of a force-inspect.
     with transaction.atomic():
-        run_task(instance)
+        run_task(instance, force=True)
         instance.save()
 
     # Return current state of object
