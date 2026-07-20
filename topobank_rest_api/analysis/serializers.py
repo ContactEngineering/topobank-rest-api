@@ -2,11 +2,24 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 from topobank.analysis.models import Configuration, WorkflowResult
+from topobank.analysis.workflows import VIZ_SERIES
 from topobank.manager.models import Surface, Tag, Topography
 
 import topobank_rest_api.taskapp.serializers
 from topobank_rest_api.supplib.mixins import StrictFieldMixin
 from topobank_rest_api.supplib.serializers import UserField
+
+
+def _visualization_type(workflow):
+    """Return the visualization (card) type for a workflow.
+
+    Implementations declare it via ``Meta.visualization_type``; workflows that
+    do not are rendered with the default (series) card.
+    """
+    impl = workflow.implementation
+    if impl is not None:
+        return getattr(impl.Meta, "visualization_type", VIZ_SERIES)
+    return VIZ_SERIES
 
 
 class ConfigurationSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
@@ -33,6 +46,11 @@ class WorkflowListSerializer(StrictFieldMixin, serializers.Serializer):
     )
     name = serializers.CharField(read_only=True)
     display_name = serializers.CharField(read_only=True)
+    visualization_type = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.CharField())
+    def get_visualization_type(self, obj) -> str:
+        return _visualization_type(obj)
 
 
 class WorkflowDetailSerializer(StrictFieldMixin, serializers.Serializer):
@@ -43,7 +61,12 @@ class WorkflowDetailSerializer(StrictFieldMixin, serializers.Serializer):
     )
     name = serializers.CharField(read_only=True)
     display_name = serializers.CharField(read_only=True)
+    visualization_type = serializers.SerializerMethodField()
     subject_types = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.CharField())
+    def get_visualization_type(self, obj) -> str:
+        return _visualization_type(obj)
     kwargs_schema = serializers.SerializerMethodField()
     outputs_schema = serializers.SerializerMethodField()
 
