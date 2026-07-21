@@ -10,7 +10,6 @@ import topobank_rest_api.taskapp.serializers as taskapp_serializers
 from topobank_rest_api.supplib.mixins import StrictFieldMixin
 from topobank_rest_api.supplib.serializers import (
     ModelRelatedField,
-    OrganizationField,
     PermissionsField,
     StringOrIntegerField,
     SubjectField,
@@ -346,7 +345,9 @@ class ResultV2DetailSerializer(
     created_by = UserField(read_only=True)
     updated_by = UserField(read_only=True)
 
-    owned_by = OrganizationField(read_only=True)
+    owned_by = serializers.CharField(
+        source="owned_by.name", read_only=True, allow_null=True
+    )
 
     permissions = PermissionsField(read_only=True)
 

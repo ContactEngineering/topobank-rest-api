@@ -65,14 +65,14 @@ def test_search_user(api_client, user_alice, user_bob, user_staff):
     response = api_client.get(f'{reverse("users:user-v1-list")}?name=bob')
     assert response.status_code == 403, response.content
 
-    # Searching for a user when logged in should yields nothing if the users
+    # Searching for a user when logged in should yield nothing if the users
     # are not in the same organization
     api_client.force_authenticate(user_alice)
     response = api_client.get(f'{reverse("users:user-v1-list")}?name=bob')
     assert response.status_code == 200, response.content
     assert len(response.data) == 0
 
-    # Create organizations and enroll alice and bob
+    # Create an organization and enroll alice and bob
     org = OrganizationFactory()
     org.add(user_alice)
     org.add(user_bob)
@@ -227,57 +227,3 @@ def test_user_response_includes_is_staff(api_client, user_alice, user_staff):
     assert response.status_code == 200, response.content
     assert "is_staff" in response.data
     assert response.data["is_staff"] is True
-
-
-@pytest.mark.django_db
-def test_add_remove_organization(api_client, user_alice, user_staff):
-    org = OrganizationFactory()
-    data_dict = {
-        "organization": reverse(
-            "organizations:organization-v1-detail", kwargs={"pk": org.id}
-        )
-    }
-
-    # Anonymous user cannot add organizations
-    response = api_client.post(
-        reverse("users:add-organization-v1", kwargs={"pk": user_alice.id}),
-        data=data_dict,
-    )
-    assert response.status_code == 403, response.content
-    assert user_alice.groups.count() == 1  # Alice starts in 'all' group
-
-    # Alice cannot add organizations
-    api_client.force_authenticate(user_alice)
-    response = api_client.post(
-        reverse("users:add-organization-v1", kwargs={"pk": user_alice.id}),
-        data=data_dict,
-    )
-    assert response.status_code == 403, response.content
-    assert user_alice.groups.count() == 1  # Alice starts in 'all' group
-
-    # Staff can add organizations
-    api_client.force_authenticate(user_staff)
-    response = api_client.post(
-        reverse("users:add-organization-v1", kwargs={"pk": user_alice.id}),
-        data=data_dict,
-    )
-    assert response.status_code == 200, response.content
-    assert user_alice.groups.count() == 2  # Alice is now in 'all' and organization group
-
-    # Alice cannot remove organizations
-    api_client.force_authenticate(user_alice)
-    response = api_client.post(
-        reverse("users:remove-organization-v1", kwargs={"pk": user_alice.id}),
-        data=data_dict,
-    )
-    assert response.status_code == 403, response.content
-    assert user_alice.groups.count() == 2
-
-    # Staff can remove organizations
-    api_client.force_authenticate(user_staff)
-    response = api_client.post(
-        reverse("users:remove-organization-v1", kwargs={"pk": user_alice.id}),
-        data=data_dict,
-    )
-    assert response.status_code == 200, response.content
-    assert user_alice.groups.count() == 1  # Alice is back in 'all' group

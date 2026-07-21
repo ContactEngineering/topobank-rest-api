@@ -1,20 +1,10 @@
-from django.apps import apps
-from django.conf import settings
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 from topobank.authorization import get_permission_model, get_user_permission_model
 from topobank.authorization.models import Permissions
 
-from topobank_rest_api.organizations.serializers import OrganizationSerializer
 from topobank_rest_api.supplib.serializers import UserField
-
-
-def get_organization_permission_model():
-    return apps.get_model(
-        getattr(settings, 'TOPOBANK_ORGANIZATION_PERMISSION_MODEL', 'authorization.OrganizationPermission'),
-        require_ready=False
-    )
 
 
 class UserPermissionSerializer(serializers.ModelSerializer):
@@ -31,30 +21,17 @@ class UserPermissionSerializer(serializers.ModelSerializer):
         return self.context["request"].user == obj.user
 
 
-class OrganizationPermissionSerializer(serializers.ModelSerializer):
-    """Serializer for organization permissions"""
-
-    class Meta:
-        model = get_organization_permission_model()
-        fields = ("id", "organization", "allow")
-
-    organization = OrganizationSerializer(read_only=True)
-
-
 class PermissionSetSerializer(serializers.ModelSerializer):
     """Serializer for permission sets"""
 
     class Meta:
         model = get_permission_model()
-        fields = ("id", "url", "user_permissions", "organization_permissions", "api")
+        fields = ("id", "url", "user_permissions", "api")
 
     url = serializers.HyperlinkedIdentityField(
         view_name="authorization:permission-set-v2-detail", lookup_field="pk", read_only=True
     )
     user_permissions = UserPermissionSerializer(many=True, read_only=True)
-    organization_permissions = OrganizationPermissionSerializer(
-        many=True, read_only=True
-    )
     api = serializers.SerializerMethodField()
 
     @extend_schema_field(
@@ -63,14 +40,10 @@ class PermissionSetSerializer(serializers.ModelSerializer):
             "properties": {
                 "grant_user_access": {"type": "string"},
                 "revoke_user_access": {"type": "string"},
-                "grant_organization_access": {"type": "string"},
-                "revoke_organization_access": {"type": "string"},
             },
             "required": [
                 "grant_user_access",
                 "revoke_user_access",
-                "grant_organization_access",
-                "revoke_organization_access",
             ],
         }
     )
@@ -84,16 +57,6 @@ class PermissionSetSerializer(serializers.ModelSerializer):
             ),
             "revoke_user_access": reverse(
                 "authorization:revoke-user-access-v2",
-                kwargs={"id": obj.id},
-                request=request,
-            ),
-            "grant_organization_access": reverse(
-                "authorization:grant-organization-access-v2",
-                kwargs={"id": obj.id},
-                request=request,
-            ),
-            "revoke_organization_access": reverse(
-                "authorization:revoke-organization-access-v2",
                 kwargs={"id": obj.id},
                 request=request,
             ),
@@ -119,31 +82,10 @@ class SharedUserPermissionSerializer(serializers.Serializer):
     )
 
 
-class SharedOrganizationPermissionSerializer(serializers.Serializer):
-    """Serializer for shared organization permissions across multiple permission sets"""
-
-    organization = OrganizationSerializer(read_only=True)
-    allow = serializers.ChoiceField(
-        choices=[
-            ('no-access', "No Access"),
-            (Permissions.view.name, "View"),
-            (Permissions.edit.name, "Edit"),
-            (Permissions.full.name, "Full"),
-        ],
-        help_text="Effective permission level across all considered permission sets",
-    )
-    is_unique = serializers.BooleanField(
-        help_text="True if the permission level is the same across all permission sets"
-    )
-
-
 class SharedPermissionSetSerializer(serializers.Serializer):
     """Serializer for shared permission sets"""
 
     user_permissions = SharedUserPermissionSerializer(many=True)
-    organization_permissions = SharedOrganizationPermissionSerializer(
-        many=True
-    )
 
 
 class GrantUserRequestSerializer(serializers.Serializer):
@@ -168,29 +110,4 @@ class RevokeUserRequestSerializer(serializers.Serializer):
 
     user = serializers.CharField(
         help_text="User identifier (URL or ID) to revoke access from"
-    )
-
-
-class GrantOrganizationRequestSerializer(serializers.Serializer):
-    """Serializer for granting organization access request"""
-
-    organization = serializers.CharField(
-        help_text="Organization identifier (URL or ID) to grant access to"
-    )
-    allow = serializers.ChoiceField(
-        choices=[
-            ("no-access", "No Access"),
-            (Permissions.view.name, "View"),
-            (Permissions.edit.name, "Edit"),
-            (Permissions.full.name, "Full"),
-        ],
-        help_text="Permission level to grant",
-    )
-
-
-class RevokeOrganizationRequestSerializer(serializers.Serializer):
-    """Serializer for revoking organization access request"""
-
-    organization = serializers.CharField(
-        help_text="Organization identifier (URL or ID) to revoke access from"
     )

@@ -22,7 +22,6 @@ from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
 )
 from rest_framework.response import Response
-from topobank.authorization import get_organization_model
 from topobank.files.models import Manifest
 from topobank.manager.export_zip import export_container_zip
 from topobank.manager.models import Surface, Tag, Topography
@@ -424,15 +423,9 @@ def set_surface_permissions(request, pk=None):
                     obj.revoke_permission(other_user)
                 else:
                     obj.grant_permission(other_user, perm)
-        elif "organization" in permission:
-            organization = get_organization_model().resolve(permission["organization"])
-            if perm == "no-access":
-                obj.revoke_permission(organization)
-            else:
-                obj.grant_permission(organization, perm)
         else:
             return HttpResponseBadRequest(
-                reason="Can only set permissions for users or organizations."
+                reason="Can only set permissions for users."
             )
 
     # Permissions were updated successfully, return 204 No Content
@@ -481,15 +474,9 @@ def set_tag_permissions(request, name=None):
                             surface.revoke_permission(other_user)
                         else:
                             surface.grant_permission(other_user, perm)
-                elif "organization" in permission:
-                    organization = get_organization_model().resolve(permission["organization"])
-                    if perm == "no-access":
-                        surface.revoke_permission(organization)
-                    else:
-                        surface.grant_permission(organization, perm)
                 else:
                     return HttpResponseBadRequest(
-                        reason="Can only set permissions for users or organizations."
+                        reason="Can only set permissions for users."
                     )
         else:
             rejected += [get_api_url(surface, request)]

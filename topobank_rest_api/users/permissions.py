@@ -5,7 +5,7 @@ class UserPermission(BasePermission):
     """
     Handle permissions for accessing users.
     * Staff users can do everything
-    * Users can only see users in their own organizations
+    * Users can only see users that share a group with them
     * Users can only edit themselves
     """
 

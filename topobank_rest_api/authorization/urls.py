@@ -27,14 +27,4 @@ urlpatterns += [
         view=v2.revoke_user,
         name="revoke-user-access-v2",
     ),
-    path(
-        "v2/grant-organization-access/<int:id>/",
-        view=v2.grant_organization,
-        name="grant-organization-access-v2",
-    ),
-    path(
-        "v2/revoke-organization-access/<int:id>/",
-        view=v2.revoke_organization,
-        name="revoke-organization-access-v2",
-    ),
 ]

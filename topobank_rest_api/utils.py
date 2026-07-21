@@ -89,8 +89,6 @@ def get_api_url(obj, request=None):
         return reverse("analysis:result-detail", kwargs=dict(pk=obj.id), request=request)
     elif model_name == "ZipArchive":
         return reverse("manager:zip-container-v2-detail", kwargs=dict(pk=obj.id), request=request)
-    elif model_name == "Organization":
-        return reverse("organizations:organization-v1-detail", kwargs={"pk": obj.pk}, request=request)
     elif model_name == "User":
         return reverse("users:user-v1-detail", kwargs={"pk": obj.pk}, request=request)
 
