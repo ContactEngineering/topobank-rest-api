@@ -11,7 +11,6 @@ from topobank_rest_api.supplib.mixins import StrictFieldMixin
 from topobank_rest_api.supplib.serializers import (
     ManifestField,
     ModelRelatedField,
-    OrganizationField,
     PermissionsField,
     UserField,
 )
@@ -86,7 +85,9 @@ class TopographyV2Serializer(StrictFieldMixin, TaskStateModelSerializer):
     # Hyperlinked resources
     created_by = UserField(read_only=True)
     updated_by = UserField(read_only=True)
-    owned_by = OrganizationField(read_only=True)
+    owned_by = serializers.CharField(
+        source="owned_by.name", read_only=True, allow_null=True
+    )
     surface = ModelRelatedField(
         view_name="manager:surface-v2-detail", queryset=Surface.objects.all()
     )
@@ -243,7 +244,9 @@ class SurfaceV2Serializer(StrictFieldMixin, serializers.HyperlinkedModelSerializ
     # Hyperlinked resources
     created_by = UserField(read_only=True)
     updated_by = UserField(read_only=True)
-    owned_by = OrganizationField(read_only=True)
+    owned_by = serializers.CharField(
+        source="owned_by.name", read_only=True, allow_null=True
+    )
 
     attachments = ModelRelatedField(view_name="files:folder-api-detail", read_only=True)
 

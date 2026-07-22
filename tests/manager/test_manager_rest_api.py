@@ -1039,45 +1039,6 @@ def test_set_surface_permissions_user(
     assert response.status_code == 404
 
 
-def test_set_surface_permissions_organization(
-    api_client, user_alice, user_bob, org_blofield, handle_usage_statistics
-):
-    # We add both users to the Blofield organization
-    org_blofield.add(user_alice)
-    org_blofield.add(user_bob)
-
-    # Create a surface and give Alice full access
-    surface = SurfaceFactory(created_by=user_alice)
-    surface.grant_permission(user_alice, "full")
-
-    # Bob cannot see this surface
-    api_client.force_login(user_bob)
-    response = api_client.get(
-        reverse("manager:surface-api-detail", kwargs=dict(pk=surface.id))
-    )
-    assert response.status_code == 404
-
-    # We now share with the Blofield organization
-    api_client.force_login(user_alice)
-    response = api_client.patch(
-        reverse("manager:set-surface-permissions", kwargs=dict(pk=surface.id)),
-        [
-            {
-                "organization": get_api_url(org_blofield, response.wsgi_request),
-                "permission": "full",
-            }
-        ],
-    )
-    assert response.status_code == 204
-
-    # Now Bob can see the surface because he is also in the Blofield organization
-    api_client.force_login(user_bob)
-    response = api_client.get(
-        reverse("manager:surface-api-detail", kwargs=dict(pk=surface.id))
-    )
-    assert response.status_code == 200
-
-
 def test_set_tag_permissions(api_client, user_alice, user_bob, handle_usage_statistics):
     surface1 = SurfaceFactory(created_by=user_alice)
     surface2 = SurfaceFactory(created_by=user_alice)

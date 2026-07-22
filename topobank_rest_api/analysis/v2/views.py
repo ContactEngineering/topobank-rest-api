@@ -127,7 +127,6 @@ class ResultView(UserUpdateMixin, viewsets.ModelViewSet):
             # List view: minimal data needed
             qs = qs.prefetch_related(
                 "permissions__user_permissions",
-                "permissions__organization_permissions",
             ).defer(
                 # Defer large JSONFields not displayed in list serializer
                 "kwargs",  # Not shown in list view
@@ -141,7 +140,6 @@ class ResultView(UserUpdateMixin, viewsets.ModelViewSet):
                 "configuration",
             ).prefetch_related(
                 "permissions__user_permissions__user",
-                "permissions__organization_permissions__organization",
                 "configuration__versions",
             )
 

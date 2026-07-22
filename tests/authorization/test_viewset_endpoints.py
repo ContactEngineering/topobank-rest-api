@@ -122,56 +122,18 @@ class TestPermissionsSharedEndpoint:
         # The permission should be 'view' (the lowest across both sets)
         assert bob_data["allow"] == "view"
 
-    def test_shared_permissions_with_organization_permissions(
-        self, api_client, user_alice, user_bob, org_blofield
+    def test_shared_permissions_prefers_lowest_across_sets(
+        self, api_client, user_alice, user_bob
     ):
-        """Test that shared considers organization permissions."""
+        """Test that the lowest direct permission level across sets is used."""
         # Create two permission sets
         perm_set1 = PermissionSet.objects.create(user=user_alice, allow="full")
         perm_set2 = PermissionSet.objects.create(user=user_alice, allow="full")
 
-        # Add Bob to the organization
-        org_blofield.add(user_bob)
-
-        # Grant organization permissions
-        perm_set1.grant_for_organization(org_blofield, "edit")
-        perm_set2.grant_for_organization(org_blofield, "view")
-
-        url = reverse("authorization:permission-set-v2-shared")
-
-        api_client.force_authenticate(user_alice)
-        response = api_client.get(url, {"sets": [perm_set1.id, perm_set2.id]})
-        assert response.status_code == 200
-
-        user_ids = [item["user"]["id"] for item in response.data["user_permissions"]]
-
-        # Bob should appear (has organization permission in both sets)
-        assert user_bob.id in user_ids
-
-        # Find Bob's permission level
-        bob_data = next(
-            item for item in response.data["user_permissions"] if item["user"]["id"] == user_bob.id
-        )
-
-        # Should be 'view' (lowest of edit and view)
-        assert bob_data["allow"] == "view"
-
-    def test_shared_permissions_prefers_direct_over_organization_permissions(
-        self, api_client, user_alice, user_bob, org_blofield
-    ):
-        """Test that when a user has both direct and org permissions, the higher is used per set."""
-        # Create two permission sets
-        perm_set1 = PermissionSet.objects.create(user=user_alice, allow="full")
-        perm_set2 = PermissionSet.objects.create(user=user_alice, allow="full")
-
-        # Add Bob to organization
-        org_blofield.add(user_bob)
-
-        # Set 1: Bob has direct 'full' and org 'view' - should use 'full'
+        # Set 1: Bob has direct 'full'
         perm_set1.grant_for_user(user_bob, "full")
-        perm_set1.grant_for_organization(org_blofield, "view")
 
-        # Set 2: Bob has only direct 'edit'
+        # Set 2: Bob has direct 'edit'
         perm_set2.grant_for_user(user_bob, "edit")
 
         url = reverse("authorization:permission-set-v2-shared")
@@ -359,7 +321,7 @@ class TestPermissionsSharedEndpoint:
     def test_shared_permissions_response_structure(
         self, api_client, user_alice
     ):
-        """Test that the response has the correct structure with user_permissions and organization_permissions."""
+        """Test that the response has the correct structure with user_permissions."""
         perm_set = PermissionSet.objects.create(user=user_alice, allow="full")
 
         url = reverse("authorization:permission-set-v2-shared")
@@ -370,9 +332,7 @@ class TestPermissionsSharedEndpoint:
 
         # Verify response structure
         assert "user_permissions" in response.data
-        assert "organization_permissions" in response.data
         assert isinstance(response.data["user_permissions"], list)
-        assert isinstance(response.data["organization_permissions"], list)
 
         # Verify user_permissions structure
         if len(response.data["user_permissions"]) > 0:

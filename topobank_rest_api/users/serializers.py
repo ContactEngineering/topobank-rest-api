@@ -2,7 +2,6 @@ from allauth.account.utils import has_verified_email
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-from rest_framework.reverse import reverse
 
 from topobank_rest_api.supplib.mixins import StrictFieldMixin
 
@@ -39,32 +38,11 @@ class UserSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
     @extend_schema_field(
         {
             "type": "object",
-            "properties": {
-                "organizations": {"type": "string", "readOnly": True},
-                "add_organization": {"type": "string", "readOnly": True},
-                "remove_organization": {"type": "string", "readOnly": True},
-            },
-            "required": ["organizations", "add_organization", "remove_organization"],
+            "properties": {},
         }
     )
     def get_api(self, obj) -> dict:
-        request = self.context["request"]
-        return {
-            "organizations": reverse(
-                "organizations:organization-v1-list", request=request
-            )
-            + f"?user={obj.id}",
-            "add_organization": reverse(
-                "users:add-organization-v1",
-                kwargs={"pk": obj.id},
-                request=request,
-            ),
-            "remove_organization": reverse(
-                "users:remove-organization-v1",
-                kwargs={"pk": obj.id},
-                request=request,
-            ),
-        }
+        return {}
 
     def get_orcid(self, obj) -> str:
         try:

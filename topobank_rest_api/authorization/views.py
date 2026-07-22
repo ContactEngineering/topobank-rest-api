@@ -9,15 +9,12 @@ from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.response import Response
-from topobank.authorization import get_organization_model, get_permission_model
+from topobank.authorization import get_permission_model
 from topobank.authorization.models import ACCESS_LEVELS
 
 from .serializers import (
-    GrantOrganizationRequestSerializer,
     GrantUserRequestSerializer,
-    OrganizationPermissionSerializer,
     PermissionSetSerializer,
-    RevokeOrganizationRequestSerializer,
     RevokeUserRequestSerializer,
     SharedPermissionSetSerializer,
     UserPermissionSerializer,
@@ -98,7 +95,6 @@ class PermissionSetViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             id__in=requested_ids
         ).prefetch_related(
             'user_permissions__user',
-            'organization_permissions__organization__group__user_set'
         ).distinct()
 
         if not user_sets.exists():
@@ -118,16 +114,6 @@ class PermissionSetViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                     'allow': user_perm.allow,
                     'access_level': ACCESS_LEVELS[user_perm.allow]
                 })
-
-            # Get organization permissions
-            for org_perm in perm_set.organization_permissions.all():
-                # Get all users in this organization
-                for user in org_perm.organization.group.user_set.all():
-                    user_permissions_map[user.id].append({
-                        'permission_set_id': perm_set.id,
-                        'allow': org_perm.allow,
-                        'access_level': ACCESS_LEVELS[org_perm.allow]
-                    })
 
         # Find users that appear in ALL permission sets
         user_ids_to_perm_info = {}
@@ -173,7 +159,6 @@ class PermissionSetViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         # Use the SharedPermissionSetSerializer for the response
         response_data = {
             'user_permissions': user_permissions_data,
-            'organization_permissions': []  # Empty for now, as we only return users
         }
 
         serializer = SharedPermissionSetSerializer(
@@ -249,74 +234,4 @@ def revoke_user(request, id: int):
 
     user = get_user_model().resolve(serializer.validated_data["user"])
     permission_set.revoke_from_user(user)
-    return Response({}, status=status.HTTP_204_NO_CONTENT)
-
-
-@extend_schema(
-    request=GrantOrganizationRequestSerializer,
-    responses={201: OrganizationPermissionSerializer},
-    parameters=[
-        OpenApiParameter(
-            name="id",
-            type=int,
-            location=OpenApiParameter.PATH,
-            description="Permission set ID",
-        )
-    ],
-    description="Grant organization access to a permission set. Requires 'full' permission on the permission set.",
-    tags=["authorization"],
-)
-@api_view(["POST"])
-@transaction.atomic
-def grant_organization(request, id: int):
-    permission_set = get_object_or_404(get_permission_model(), pk=id)
-    # The user needs 'full' permission to modify permissions
-    permission_set.authorize_user(request.user, "full")
-
-    # Validate request data using serializer
-    serializer = GrantOrganizationRequestSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    organization = get_organization_model().resolve(serializer.validated_data["organization"])
-    allow = serializer.validated_data["allow"]
-    if allow == "no-access":
-        permission_set.revoke_from_organization(organization)
-        return Response({}, status=status.HTTP_204_NO_CONTENT)
-    else:
-        permission_set.grant_for_organization(organization, allow)
-
-    response_serializer = OrganizationPermissionSerializer(
-        permission_set.organization_permissions.get(organization=organization),
-        context={'request': request}
-    )
-    return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-
-
-@extend_schema(
-    request=RevokeOrganizationRequestSerializer,
-    responses={204: None},
-    parameters=[
-        OpenApiParameter(
-            name="id",
-            type=int,
-            location=OpenApiParameter.PATH,
-            description="Permission set ID",
-        )
-    ],
-    description="Revoke organization access from a permission set. Requires 'full' permission on the permission set.",
-    tags=["authorization"],
-)
-@api_view(["POST"])
-@transaction.atomic
-def revoke_organization(request, id: int):
-    permission_set = get_object_or_404(get_permission_model(), pk=id)
-    # The user needs 'full' permission to modify permissions
-    permission_set.authorize_user(request.user, "full")
-
-    # Validate request data using serializer
-    serializer = RevokeOrganizationRequestSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    organization = get_organization_model().resolve(serializer.validated_data["organization"])
-    permission_set.revoke_from_organization(organization)
     return Response({}, status=status.HTTP_204_NO_CONTENT)

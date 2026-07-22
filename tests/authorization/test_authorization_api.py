@@ -15,11 +15,3 @@ def test_api():
         reverse("authorization:revoke-user-access-v2", kwargs=dict(id=123))
         == "/authorization/v2/revoke-user-access/123/"
     )
-    assert (
-        reverse("authorization:grant-organization-access-v2", kwargs=dict(id=123))
-        == "/authorization/v2/grant-organization-access/123/"
-    )
-    assert (
-        reverse("authorization:revoke-organization-access-v2", kwargs=dict(id=123))
-        == "/authorization/v2/revoke-organization-access/123/"
-    )

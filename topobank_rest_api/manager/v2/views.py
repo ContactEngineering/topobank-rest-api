@@ -69,8 +69,6 @@ class SurfaceViewSet(UserUpdateMixin, viewsets.ModelViewSet):
             'tags',
             'permissions__user_permissions',
             'permissions__user_permissions__user',
-            'permissions__organization_permissions',
-            'permissions__organization_permissions__organization',
         ).order_by('name')
 
     def list(self, request, *args, **kwargs):
@@ -143,8 +141,6 @@ class TopographyViewSet(UserUpdateMixin, viewsets.ModelViewSet):
             'tags',
             'permissions__user_permissions',
             'permissions__user_permissions__user',
-            'permissions__organization_permissions',
-            'permissions__organization_permissions__organization',
         ).order_by('name')
 
     def get_serializer_class(self):

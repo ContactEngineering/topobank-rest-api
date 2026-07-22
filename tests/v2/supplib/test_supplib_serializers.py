@@ -3,7 +3,7 @@ Tests for topobank.supplib.serializers module.
 
 This module tests the custom Django REST Framework serializers and fields
 including StrictFieldMixin, DynamicFieldsModelSerializer, PermissionsField,
-ModelRelatedField, and specialized fields like UserField, OrganizationField,
+ModelRelatedField, and specialized fields like UserField,
 SubjectField, ManifestField, and StringOrIntegerField.
 """
 
@@ -24,7 +24,6 @@ from topobank_rest_api.supplib.serializers import (
     DynamicFieldsModelSerializer,
     ManifestField,
     ModelRelatedField,
-    OrganizationField,
     PermissionsField,
     StringOrIntegerField,
     SubjectField,
@@ -305,42 +304,6 @@ def test_user_field_deserialization_by_id(api_rf, user_alice):
     result = field.to_internal_value({"id": user_alice.pk})
 
     assert result == user_alice
-
-
-# ============================================================================
-# Test OrganizationField
-# ============================================================================
-
-
-@pytest.mark.django_db
-def test_organization_field_representation(api_rf, org_blofield):
-    """Test OrganizationField serializes organization with id, url, and name."""
-    request = api_rf.get("/")
-
-    field = OrganizationField(read_only=True)
-    field._context = {"request": request}
-
-    data = field.to_representation(org_blofield)
-
-    assert "id" in data
-    assert "url" in data
-    assert "name" in data
-    assert data["id"] == org_blofield.pk
-    assert data["name"] == org_blofield.name
-    assert f"/organizations/v1/organization/{org_blofield.pk}/" in data["url"]
-
-
-@pytest.mark.django_db
-def test_organization_field_deserialization_by_id(api_rf, org_blofield):
-    """Test OrganizationField deserializes organization from id."""
-    request = api_rf.get("/")
-
-    field = OrganizationField(queryset=org_blofield.__class__.objects.all())
-    field._context = {"request": request}
-
-    result = field.to_internal_value({"id": org_blofield.pk})
-
-    assert result == org_blofield
 
 
 # ============================================================================
