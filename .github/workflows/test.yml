@@ -54,14 +54,23 @@ jobs:
 
     - name: Create bucket
       run: |
-        curl https://dl.min.io/client/mc/release/linux-amd64/mc --create-dirs -o $HOME/minio-binaries/mc
+        # -f: fail (non-zero exit) on HTTP errors instead of saving an error
+        #     page, -L: follow redirects, -sS: quiet but still show errors.
+        # Without these, a redirect/error response was silently written to
+        # `mc`, producing a non-executable text file ("mc: line 1: a: No such
+        # file or directory") that made every mc call fail and looked like a
+        # Minio-readiness problem.
+        curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc --create-dirs -o $HOME/minio-binaries/mc
         chmod +x $HOME/minio-binaries/mc
         export PATH=$PATH:$HOME/minio-binaries/
+
+        # Sanity-check that we actually downloaded a working binary.
+        mc --version
 
         # Wait for Minio to be ready
         echo "Waiting for Minio to be ready..."
         for i in {1..30}; do
-          if mc alias set minio $AWS_S3_ENDPOINT_URL $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY 2>/dev/null; then
+          if mc alias set minio $AWS_S3_ENDPOINT_URL $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY; then
             echo "Minio is ready!"
             break
           fi
