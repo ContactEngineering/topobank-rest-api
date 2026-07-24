@@ -49,6 +49,23 @@ class TagViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     pagination_class = LimitOffsetPagination
 
     def list(self, request, *args, **kwargs):
+        search = request.query_params.get("search")
+        if search is not None:
+            # Autocomplete mode: full names of tags (on datasets visible to the
+            # current user) that contain the search string
+            try:
+                limit = min(int(request.query_params.get("limit", 10)), 25)
+            except ValueError:
+                raise ParseError("`limit` must be an integer.")
+            tag_names = sorted(
+                set(
+                    Surface.objects.for_user(request.user)
+                    .filter(tags__name__icontains=search)
+                    .values_list("tags__name", flat=True)
+                )
+            )[:limit]
+            return Response(tag_names)
+
         all_tags = set(
             "" if tag_name is None else tag_name
             for tag_name in itertools.chain.from_iterable(

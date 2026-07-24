@@ -91,10 +91,10 @@ def test_surface_retrieve_routes(
             "resolution_y": 256,
             "short_reliability_cutoff": None,
             "size_editable": False,
-            "size_x": 10000.0,
-            "size_y": 10000.0,
+            "size_x": 10.0,
+            "size_y": 10.0,
             "surface": f"http://testserver/manager/api/surface/{surface1.id}/",
-            "unit": "nm",
+            "unit": "µm",
             "unit_editable": False,
             "url": f"http://testserver/manager/api/topography/{topo1.id}/",
             "api": {
@@ -165,10 +165,10 @@ def test_surface_retrieve_routes(
             "resolution_y": 305,
             "short_reliability_cutoff": None,
             "size_editable": False,
-            "size_y": 112.80791e-6,
-            "size_x": 27.73965e-6,
+            "size_y": 112.80791,
+            "size_x": 27.73965,
             "surface": f"http://testserver/manager/api/surface/{surface2.id}/",
-            "unit": "m",
+            "unit": "µm",
             "unit_editable": False,
             "url": f"http://testserver/manager/api/topography/{topo2.id}/",
             "api": {
@@ -284,10 +284,10 @@ def test_topography_retrieve_routes(
         "resolution_y": 256,
         "short_reliability_cutoff": None,
         "size_editable": False,
-        "size_x": 10000.0,
-        "size_y": 10000.0,
+        "size_x": 10.0,
+        "size_y": 10.0,
         "surface": f"http://testserver/manager/api/surface/{topo1.surface.id}/",
-        "unit": "nm",
+        "unit": "µm",
         "unit_editable": False,
         "url": f"http://testserver/manager/api/topography/{topo1.id}/",
         "api": {
@@ -344,10 +344,10 @@ def test_topography_retrieve_routes(
         "resolution_y": 305,
         "short_reliability_cutoff": None,
         "size_editable": False,
-        "size_y": 112.80791e-6,
-        "size_x": 27.73965e-6,
+        "size_y": 112.80791,
+        "size_x": 27.73965,
         "surface": f"http://testserver/manager/api/surface/{topo2.surface.id}/",
-        "unit": "m",
+        "unit": "µm",
         "unit_editable": False,
         "url": f"http://testserver/manager/api/topography/{topo2.id}/",
         "api": {
@@ -1109,3 +1109,92 @@ def test_set_tag_permissions(api_client, user_alice, user_bob, handle_usage_stat
         reverse("manager:surface-api-detail", kwargs=dict(pk=surface1.id))
     )
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_filter_by_author_and_name(api_client, user_alice, user_bob):
+    surface1 = SurfaceFactory(created_by=user_alice, name="Steel sample")
+    surface2 = SurfaceFactory(created_by=user_alice, name="Copper sample")
+    surface3 = SurfaceFactory(created_by=user_bob, name="Steel reference")
+    surface3.grant_permission(user_alice, "view")
+
+    api_client.force_login(user_alice)
+    list_url = reverse("manager:surface-api-list")
+
+    # No filters: all three surfaces are visible
+    response = api_client.get(list_url)
+    assert response.status_code == 200
+    assert {s["id"] for s in response.data} == {
+        surface1.id,
+        surface2.id,
+        surface3.id,
+    }
+
+    # Filter by author (case-insensitive substring of the creator's name)
+    response = api_client.get(f"{list_url}?author={user_bob.name.lower()}")
+    assert response.status_code == 200
+    assert {s["id"] for s in response.data} == {surface3.id}
+
+    # Filter by name (case-insensitive substring)
+    response = api_client.get(f"{list_url}?name=steel")
+    assert response.status_code == 200
+    assert {s["id"] for s in response.data} == {
+        surface1.id,
+        surface3.id,
+    }
+
+    # Filters combine with AND
+    response = api_client.get(
+        f"{list_url}?name=steel&author={user_alice.name.lower()}"
+    )
+    assert response.status_code == 200
+    assert {s["id"] for s in response.data} == {surface1.id}
+
+    # Non-matching filter yields no results
+    response = api_client.get(f"{list_url}?author=nonexistent-user")
+    assert response.status_code == 200
+    assert response.data == []
+
+
+@pytest.mark.django_db
+def test_tag_autocomplete(api_client, user_alice, user_bob):
+    surface1 = SurfaceFactory(created_by=user_alice)
+    surface1.tags = ["metal/steel", "polished"]
+    surface1.save()
+    surface2 = SurfaceFactory(created_by=user_alice)
+    surface2.tags = ["metal/copper"]
+    surface2.save()
+    # Bob's dataset is not visible to Alice; its tags must not be suggested
+    surface3 = SurfaceFactory(created_by=user_bob)
+    surface3.tags = ["metallurgy-secret"]
+    surface3.save()
+
+    api_client.force_login(user_alice)
+    list_url = reverse("manager:tag-api-list")
+
+    # Substring match over full tag names, only over visible datasets
+    response = api_client.get(f"{list_url}?search=metal")
+    assert response.status_code == 200
+    assert response.data == ["metal/copper", "metal/steel"]
+
+    response = api_client.get(f"{list_url}?search=pol")
+    assert response.status_code == 200
+    assert response.data == ["polished"]
+
+    response = api_client.get(f"{list_url}?search=zzznothing")
+    assert response.status_code == 200
+    assert response.data == []
+
+    # Limit is honored
+    response = api_client.get(f"{list_url}?search=metal&limit=1")
+    assert response.status_code == 200
+    assert response.data == ["metal/copper"]
+
+    # Invalid limit is rejected
+    response = api_client.get(f"{list_url}?search=metal&limit=abc")
+    assert response.status_code == 400
+
+    # Without `search`, the legacy top-level listing is unchanged
+    response = api_client.get(list_url)
+    assert response.status_code == 200
+    assert response.data == ["metal", "polished"]

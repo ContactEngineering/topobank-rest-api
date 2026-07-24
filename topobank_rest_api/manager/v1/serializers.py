@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse
 from tagulous.contrib.drf import TagRelatedManagerField
 from topobank.manager.models import Surface, Tag, Topography
+from topobank.manager.utils import to_natural_length_unit
 
 from topobank_rest_api.supplib.mixins import StrictFieldMixin
 from topobank_rest_api.utils import get_api_url
@@ -202,6 +203,19 @@ class TopographySerializer(StrictFieldMixin, TaskStateModelSerializer):
                     f"{s} is given by the data file and cannot be set"
                 )
         return super().validate(data)
+
+    def to_representation(self, instance):
+        # Present the physical size in the most natural length unit (fewest
+        # digits). This is the single point where size unit conversion happens;
+        # the raw file values are left untouched in the database.
+        data = super().to_representation(instance)
+        size_x, size_y, unit = to_natural_length_unit(
+            data.get("size_x"), data.get("size_y"), data.get("unit")
+        )
+        data["size_x"] = size_x
+        data["size_y"] = size_y
+        data["unit"] = unit
+        return data
 
     @extend_schema_field(
         {

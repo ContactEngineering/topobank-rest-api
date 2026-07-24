@@ -3,8 +3,8 @@
 import pytest
 from django.conf import settings
 from django.test import override_settings
-
 from topobank.testing.factories import SurfaceFactory, Topography1DFactory, UserFactory
+
 from tests.utils import search_surfaces
 
 
@@ -281,3 +281,62 @@ def test_search_for_user(api_client):
     assert result[0]["topographies"][0]["name"] == topo1b.name
     assert result[1]["name"] == surf2.name
     assert len(result[1]["topographies"]) == 0
+
+
+#
+# Tests for the stored search vector (Surface.search_vector + GIN index),
+# maintained by signal handlers.
+#
+
+
+@pytest.mark.django_db
+def test_search_stored_vector_basics(api_client):
+    user = UserFactory(name="Melissa Officinalis")
+    surface = SurfaceFactory(
+        created_by=user, name="Aluminum plate", description="polished sample"
+    )
+    other = SurfaceFactory(created_by=user, name="Copper block")
+    api_client.force_login(user)
+
+    def ids(expr):
+        return {s["id"] for s in search_surfaces(api_client, expr)}
+
+    # Own fields: name, description, creator
+    assert ids("aluminum") == {surface.id}
+    assert ids("polished") == {surface.id}
+    assert ids("Melissa") == {surface.id, other.id}
+    assert ids("zzznothing") == set()
+
+    # websearch expressions still work
+    assert ids("aluminum OR copper") == {surface.id, other.id}
+    assert ids("-aluminum") == {other.id}
+    assert ids('"polished sample"') == {surface.id}
+
+
+@pytest.mark.django_db
+def test_search_stored_vector_updates(api_client):
+    user = UserFactory()
+    surface = SurfaceFactory(created_by=user, name="Initial name")
+    api_client.force_login(user)
+
+    def ids(expr):
+        return {s["id"] for s in search_surfaces(api_client, expr)}
+
+    # Rename is picked up (and the old name no longer matches)
+    surface.name = "Renamed dataset"
+    surface.save(update_fields=["name"])
+    assert ids("renamed") == {surface.id}
+    assert ids("initial") == set()
+
+    # A new measurement contributes its (de-dotted) file name...
+    topo = Topography1DFactory(surface=surface, name="alphascan.di")
+    assert ids("alphascan") == {surface.id}
+
+    # ...and stops matching after deletion
+    topo.delete()
+    assert ids("alphascan") == set()
+
+    # Hierarchical tags are split into searchable words
+    surface.tags = ["metal/steel"]
+    surface.save()
+    assert ids("steel") == {surface.id}
