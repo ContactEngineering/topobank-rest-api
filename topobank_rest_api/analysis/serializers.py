@@ -22,6 +22,29 @@ def _visualization_type(workflow):
     return VIZ_SERIES
 
 
+def _description(workflow):
+    """Return the short, user-facing description of a workflow (or "").
+
+    Implementations may declare it via ``Meta.description``.
+    """
+    impl = workflow.implementation
+    if impl is not None:
+        return getattr(impl.Meta, "description", "")
+    return ""
+
+
+def _reference_url(workflow):
+    """Return a URL to reference documentation for a workflow (or None).
+
+    Implementations may declare it via ``Meta.reference_url`` (e.g. a link to
+    the relevant section of the Contact.Engineering paper).
+    """
+    impl = workflow.implementation
+    if impl is not None:
+        return getattr(impl.Meta, "reference_url", None)
+    return None
+
+
 class ConfigurationSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
     """Serializer for Configuration model."""
     class Meta:
@@ -47,10 +70,20 @@ class WorkflowListSerializer(StrictFieldMixin, serializers.Serializer):
     name = serializers.CharField(read_only=True)
     display_name = serializers.CharField(read_only=True)
     visualization_type = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+    reference_url = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.CharField())
     def get_visualization_type(self, obj) -> str:
         return _visualization_type(obj)
+
+    @extend_schema_field(serializers.CharField())
+    def get_description(self, obj) -> str:
+        return _description(obj)
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_reference_url(self, obj):
+        return _reference_url(obj)
 
 
 class WorkflowDetailSerializer(StrictFieldMixin, serializers.Serializer):
@@ -62,11 +95,21 @@ class WorkflowDetailSerializer(StrictFieldMixin, serializers.Serializer):
     name = serializers.CharField(read_only=True)
     display_name = serializers.CharField(read_only=True)
     visualization_type = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+    reference_url = serializers.SerializerMethodField()
     subject_types = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.CharField())
     def get_visualization_type(self, obj) -> str:
         return _visualization_type(obj)
+
+    @extend_schema_field(serializers.CharField())
+    def get_description(self, obj) -> str:
+        return _description(obj)
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_reference_url(self, obj):
+        return _reference_url(obj)
     kwargs_schema = serializers.SerializerMethodField()
     outputs_schema = serializers.SerializerMethodField()
 
