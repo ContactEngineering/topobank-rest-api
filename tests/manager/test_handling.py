@@ -864,9 +864,11 @@ def test_upload_opd_file_check(
     assert response.data["channel_names"] == [["Raw", "mm"]]
     assert response.data["name"] == "example.opd"
 
-    # check whether known values for size and height scale are in content
-    assert response.data["size_x"] == approx(0.1485370245)
-    assert response.data["size_y"] == approx(0.1500298589)
+    # check whether known values for size and height scale are in content;
+    # the physical size is reported in the natural unit (mm -> µm here)
+    assert response.data["size_x"] == approx(148.5370245)
+    assert response.data["size_y"] == approx(150.0298589)
+    assert response.data["unit"] == "µm"
     assert response.data["height_scale"] == approx(0.0005343980102539062)
 
     surface = Surface.objects.get(name="surface1")
@@ -957,9 +959,10 @@ def test_edit_topography(api_client, topo_example3, handle_usage_statistics):
     assert response.data["name"] == topo_example3.name
     assert response.data["measurement_date"] == str(datetime.date(2018, 1, 1))
     assert response.data["description"] == "description1"
-    assert response.data["size_x"] == approx(10000)
-    assert response.data["size_y"] == approx(10000)
-    assert response.data["unit"] == "nm"
+    # physical size is reported in the natural unit (10000 nm -> 10 µm)
+    assert response.data["size_x"] == approx(10)
+    assert response.data["size_y"] == approx(10)
+    assert response.data["unit"] == "µm"
     assert response.data["height_scale"] == approx(0.29638271279074097)
     assert response.data["detrend_mode"] == "height"
 
@@ -1109,10 +1112,10 @@ def test_topography_detail(
     # .. description
     assert response.data["description"] == "description2"
 
-    # .. physical size
-    assert response.data["unit"] == "m"
-    assert response.data["size_x"] == approx(2.773965e-05)
-    assert response.data["size_y"] == approx(0.00011280791)
+    # .. physical size, reported in the natural unit (m -> µm)
+    assert response.data["unit"] == "µm"
+    assert response.data["size_x"] == approx(27.73965)
+    assert response.data["size_y"] == approx(112.80791)
 
 
 @pytest.mark.django_db

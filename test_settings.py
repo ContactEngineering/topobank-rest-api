@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "storages",
     "notifications",
     "tagulous",
+    "termsandconditions",
     "django_celery_results",
     "topobank.testing.mock_auth.users.apps.UsersAppConfig",
     "topobank.testing.mock_auth.authorization.apps.AuthorizationAppConfig",
@@ -149,6 +150,10 @@ TEMPLATES = [
         },
     },
 ]
+
+# Mirrors the production configuration; the staff user dashboard reports
+# holders of this permission as exempt from accepting the terms.
+TERMS_EXCLUDE_USERS_WITH_PERM = "users.can_skip_terms"
 
 ADMIN_URL = "admin/"
 TRACKED_DEPENDENCIES = [
