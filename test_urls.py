@@ -8,6 +8,7 @@ urlpatterns = [
     path("files/", include("topobank_rest_api.files.urls", namespace="files")),
     path("manager/", include("topobank_rest_api.manager.urls", namespace="manager")),
     path("analysis/", include("topobank_rest_api.analysis.urls", namespace="analysis")),
+    path("staff/", include("topobank_rest_api.staff.urls", namespace="staff")),
     # API entry points
     path("api/", entry_points, name="entry-points"),
 ]
