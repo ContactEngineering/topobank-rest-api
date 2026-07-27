@@ -54,7 +54,6 @@ def test_surface_retrieve_routes(
         "url": f"http://testserver/manager/api/surface/{surface1.id}/",
         "api": {
             "set_permissions": ASSERT_EQUAL_IGNORE_VALUE,
-            "download": ASSERT_EQUAL_IGNORE_VALUE,
             "async_download": ASSERT_EQUAL_IGNORE_VALUE,
         },
         "creation_datetime": surface1.created_at.astimezone().isoformat(),
@@ -128,7 +127,6 @@ def test_surface_retrieve_routes(
         "url": f"http://testserver/manager/api/surface/{surface2.id}/",
         "api": {
             "set_permissions": ASSERT_EQUAL_IGNORE_VALUE,
-            "download": ASSERT_EQUAL_IGNORE_VALUE,
             "async_download": ASSERT_EQUAL_IGNORE_VALUE,
         },
         "creation_datetime": surface2.created_at.astimezone().isoformat(),
@@ -793,7 +791,6 @@ def test_tag_retrieve_routes(api_client, two_users, handle_usage_statistics):
         "url": get_api_url(surface3, response.wsgi_request),
         "api": {
             "set_permissions": ASSERT_EQUAL_IGNORE_VALUE,
-            "download": ASSERT_EQUAL_IGNORE_VALUE,
             "async_download": ASSERT_EQUAL_IGNORE_VALUE,
         },
         "id": surface3.id,
@@ -817,7 +814,6 @@ def test_tag_retrieve_routes(api_client, two_users, handle_usage_statistics):
         "url": get_api_url(surface2, response.wsgi_request),
         "api": {
             "set_permissions": ASSERT_EQUAL_IGNORE_VALUE,
-            "download": ASSERT_EQUAL_IGNORE_VALUE,
             "async_download": ASSERT_EQUAL_IGNORE_VALUE,
         },
         "id": surface2.id,

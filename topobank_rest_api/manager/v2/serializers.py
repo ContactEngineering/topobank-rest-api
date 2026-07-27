@@ -7,6 +7,7 @@ from topobank.files.models import Manifest
 from topobank.manager.models import Surface, Topography
 from topobank.manager.zip_model import ZipContainer
 
+from topobank_rest_api.files.v2.serializers import ManifestV2Serializer
 from topobank_rest_api.supplib.mixins import StrictFieldMixin
 from topobank_rest_api.supplib.serializers import (
     ManifestField,
@@ -319,8 +320,12 @@ class ZipContainerV2Serializer(StrictFieldMixin, TaskStateModelSerializer):
     created_by = UserField(read_only=True)
     updated_by = UserField(read_only=True)
 
-    # The actual file
-    manifest = ManifestField(read_only=True)
+    # The actual file. Serialized in full (rather than with `ManifestField`,
+    # which withholds the file URL unless the request carries `?link_file`),
+    # because the URL to download the archive from *is* the payload of this
+    # endpoint: a client that polls the container has nothing to do with a
+    # manifest it cannot fetch.
+    manifest = ManifestV2Serializer(read_only=True)
 
     @extend_schema_field(
         {

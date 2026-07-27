@@ -7,7 +7,6 @@ import tempfile
 import pytest
 from django.core.management import call_command
 from django.shortcuts import reverse
-
 from topobank.manager.models import Surface
 from topobank.testing.factories import (
     SurfaceFactory,
@@ -15,10 +14,13 @@ from topobank.testing.factories import (
     Topography2DFactory,
     UserFactory,
 )
+from topobank.testing.utils import download_zip_container
 
 
 @pytest.mark.django_db
-def test_import_downloaded_surface_archive(client, handle_usage_statistics):
+def test_import_downloaded_surface_archive(
+    client, handle_usage_statistics, django_capture_on_commit_callbacks
+):
     username = 'test_user'
     surface_name = "Test Surface for Import"
     surface_category = 'dum'
@@ -29,12 +31,15 @@ def test_import_downloaded_surface_archive(client, handle_usage_statistics):
 
     client.force_login(user)
 
-    download_url = reverse('manager:surface-download', kwargs=dict(surface_ids=surface.id))
-    response = client.get(download_url)
+    container_data = download_zip_container(
+        client,
+        reverse('manager:surface-download-v2', kwargs=dict(surface_ids=surface.id)),
+        django_capture_on_commit_callbacks,
+    )
 
     # write downloaded data to temporary file and open
     with tempfile.NamedTemporaryFile(mode='wb') as zip_archive:
-        zip_archive.write(response.content)
+        zip_archive.write(container_data)
         zip_archive.seek(0)
 
         # reimport the surface
