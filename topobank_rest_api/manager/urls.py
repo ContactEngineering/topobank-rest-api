@@ -28,6 +28,12 @@ urlpatterns += [
     # v1 routes built the container inside the request, which blocked a web
     # worker for the whole duration.)
     #
+    # GET
+    re_path(
+        r"api/surface/download/(?P<surface_ids>[\d,]+)/$",
+        view=v1.download_surface,
+        name="surface-download",
+    ),
     # POST
     re_path(
         r"v2/download-surface/(?P<surface_ids>[\d,]+)/$",

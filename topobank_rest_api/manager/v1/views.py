@@ -5,12 +5,13 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Case, F, Q, When
 from django.http import HttpResponseBadRequest, HttpResponseForbidden
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from notifications.signals import notify
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import (
     IsAdminUser,
@@ -234,6 +235,36 @@ class TopographyViewSet(
                 instance.save()  # Save the pending state
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
+
+
+@extend_schema(request=None, responses=OpenApiTypes.OBJECT)
+@api_view(["GET"])
+@transaction.non_atomic_requests
+def download_surface(request, surface_ids):
+    from ..v2 import views as v2
+
+    try:
+        parsed_ids = [int(sid) for sid in surface_ids.split(",")]
+    except ValueError:
+        return HttpResponseBadRequest("Invalid surface ID(s).")
+
+    surfaces = [get_object_or_404(Surface, id=sid) for sid in parsed_ids]
+
+    for surface in surfaces:
+        if not surface.has_permission(request.user, "view"):
+            raise PermissionDenied()
+
+    if len(surfaces) == 1 and surfaces[0].is_published:
+        pub = surfaces[0].publication
+        try:
+            return redirect(
+                reverse("publication:download-container", kwargs={"short_url": pub.short_url})
+            )
+        except Exception:
+            if pub.container:
+                return redirect(pub.container.url)
+
+    return v2.download_surface(request, surface_ids)
 
 
 @extend_schema(

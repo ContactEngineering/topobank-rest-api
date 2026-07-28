@@ -349,9 +349,10 @@ class SurfaceSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer
             "type": "object",
             "properties": {
                 "set_permissions": {"type": "string"},
+                "download": {"type": "string"},
                 "async_download": {"type": "string"},
             },
-            "required": ["set_permissions", "async_download"],
+            "required": ["set_permissions", "download", "async_download"],
         }
     )
     def get_api(self, obj: Surface) -> dict:
@@ -359,6 +360,11 @@ class SurfaceSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer
             "set_permissions": reverse(
                 "manager:set-surface-permissions",
                 kwargs={"pk": obj.id},
+                request=self.context["request"],
+            ),
+            "download": reverse(
+                "manager:surface-download",
+                kwargs={"surface_ids": obj.id},
                 request=self.context["request"],
             ),
             "async_download": reverse(
