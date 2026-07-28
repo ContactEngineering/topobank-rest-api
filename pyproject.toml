@@ -48,6 +48,7 @@ dev = [
     'factory-boy',
     'django-test-plus',
     'django-celery-results',
+    'django-termsandconditions>=2.0.8',
 ]
 
 [project.urls]
