@@ -4,9 +4,11 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.reverse import reverse
 from topobank.analysis.models import Configuration, WorkflowResult, resolve_workflow
+from topobank.analysis.zip_model import ResultZipContainer
 from topobank.manager.models import Surface, Tag, Topography
 
 import topobank_rest_api.taskapp.serializers as taskapp_serializers
+from topobank_rest_api.files.v2.serializers import ManifestV2Serializer
 from topobank_rest_api.supplib.mixins import StrictFieldMixin
 from topobank_rest_api.supplib.serializers import (
     ModelRelatedField,
@@ -434,3 +436,41 @@ class DependencyV2ListSerializer(serializers.BaseSerializer):
                 )
 
         return dependencies_list
+
+
+class ResultZipContainerV2Serializer(
+    StrictFieldMixin, taskapp_serializers.TaskStateModelSerializer
+):
+    """v2 Serializer for ResultZipContainer model."""
+
+    class Meta:
+        model = ResultZipContainer
+        read_only_fields = [
+            "url",
+            "id",
+            "permissions",
+            "task_duration",
+            "task_error",
+            "task_progress",
+            "task_state",
+            "task_memory",
+            "celery_task_state",
+            "self_reported_task_state",
+            "created_at",
+            "updated_at",
+        ]
+        fields = read_only_fields + [
+            "manifest",
+        ]
+
+    # Self
+    url = serializers.HyperlinkedIdentityField(
+        view_name="analysis:result-zip-container-v2-detail", read_only=True
+    )
+
+    # Permissions
+    permissions = PermissionsField(read_only=True)
+
+    # The archive itself; `file` carries the URL the client downloads from once
+    # the task has succeeded.
+    manifest = ManifestV2Serializer(read_only=True)

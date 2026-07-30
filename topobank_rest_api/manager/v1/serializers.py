@@ -54,21 +54,15 @@ class TagSerializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
             "type": "object",
             "properties": {
                 "set_permissions": {"type": "string"},
-                "download": {"type": "string"},
                 "async_download": {"type": "string"},
             },
-            "required": ["set_permissions", "download", "async_download"],
+            "required": ["set_permissions", "async_download"],
         }
     )
     def get_api(self, obj: Tag) -> dict:
         return {
             "set_permissions": reverse(
                 "manager:set-tag-permissions",
-                kwargs={"name": obj.name},
-                request=self.context["request"],
-            ),
-            "download": reverse(
-                "manager:tag-download",
                 kwargs={"name": obj.name},
                 request=self.context["request"],
             ),

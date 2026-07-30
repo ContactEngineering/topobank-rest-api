@@ -22,23 +22,18 @@ urlpatterns = router.urls
 app_name = "manager"
 urlpatterns += [
     #
-    # Data routes (v1)
-    # v1 API creates ZIP container in Django task, which blocks the server
+    # Data routes
+    # ZIP containers are always built by a Celery task; the client polls the
+    # container and then downloads the finished file from storage. (The former
+    # v1 routes built the container inside the request, which blocked a web
+    # worker for the whole duration.)
     #
+    # GET
     re_path(
-        r"api/surface/(?P<surface_ids>[\d,]+)/download/$",
+        r"api/surface/download/(?P<surface_ids>[\d,]+)/$",
         view=v1.download_surface,
         name="surface-download",
     ),
-    re_path(
-        r"api/download-tag/(?P<name>[^.]+)/$",
-        view=v1.download_tag,
-        name="tag-download",
-    ),
-    #
-    # Data routes (v2)
-    # v2 API defers creation of ZIP containers to a Celery task
-    #
     # POST
     re_path(
         r"v2/download-surface/(?P<surface_ids>[\d,]+)/$",

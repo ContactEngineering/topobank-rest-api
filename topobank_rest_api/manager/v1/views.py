@@ -1,15 +1,12 @@
 import itertools
 import logging
-import os.path
-from io import BytesIO
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Case, F, Q, When
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect
-from django.utils.text import slugify
+from django.urls import reverse
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from notifications.signals import notify
 from rest_framework import mixins, viewsets
@@ -23,7 +20,6 @@ from rest_framework.permissions import (
 )
 from rest_framework.response import Response
 from topobank.files.models import Manifest
-from topobank.manager.export_zip import export_container_zip
 from topobank.manager.models import Surface, Tag, Topography
 from topobank.manager.tasks import import_container_from_url
 from topobank.supplib.versions import get_versions
@@ -242,115 +238,33 @@ class TopographyViewSet(
 
 
 @extend_schema(request=None, responses=OpenApiTypes.OBJECT)
+@api_view(["GET"])
 @transaction.non_atomic_requests
-def download_surfaces(request, surfaces, container_filename=None):
-    #
-    # Check existence and permissions for given surface
-    #
+def download_surface(request, surface_ids):
+    from ..v2 import views as v2
+
+    try:
+        parsed_ids = [int(sid) for sid in surface_ids.split(",")]
+    except ValueError:
+        return HttpResponseBadRequest("Invalid surface ID(s).")
+
+    surfaces = [get_object_or_404(Surface, id=sid) for sid in parsed_ids]
+
     for surface in surfaces:
         if not surface.has_permission(request.user, "view"):
             raise PermissionDenied()
 
-    content_data = None
-
-    #
-    # If the surface has been published, there might be a container file already.
-    # If yes:
-    #   Is there already a container?
-    #     Then it instead of creating a new container.from
-    #     If no, save the container in the publication later.
-    # If no: create a container for this surface on the fly
-    #
-    if len(surfaces) == 1:
-        (surface,) = surfaces
-        if surface.is_published:
-            pub = surface.publication
-            if container_filename is None:
-                container_filename = os.path.basename(pub.container_storage_path)
-
-            if pub.container:
-                if settings.USE_S3_STORAGE:
-                    # Return redirect to S3
-                    return redirect(pub.container.url)
-                else:
-                    content_data = pub.container.read()
-        else:
-            if container_filename is None:
-                container_filename = f"{slugify(surface.name)}.zip"
-    else:
-        if container_filename is None:
-            container_filename = "digital-surface-twins.zip"
-
-    if content_data is None:
-        container_bytes = BytesIO()
-        _log.info(
-            f"Preparing container of surface with ids {' '.join([str(s.id) for s in surfaces])} for download..."
-        )
+    if len(surfaces) == 1 and surfaces[0].is_published:
+        pub = surfaces[0].publication
         try:
-            export_container_zip(container_bytes, surfaces)
-        except FileNotFoundError:
-            return HttpResponseBadRequest(
-                "Cannot create ZIP container for download because some data file "
-                "could not be accessed. (The file may be missing.)"
+            return redirect(
+                reverse("publication:download-container", kwargs={"short_url": pub.short_url})
             )
-        content_data = container_bytes.getvalue()
-
-        if len(surfaces) == 1 and surfaces[0].is_published:
-            pub = surfaces[0].publication
-            try:
-                container_bytes.seek(0)
-                _log.info(
-                    f"Saving container for publication with URL {pub.short_url} to storage for later.."
-                )
-                pub.container.save(pub.container_storage_path, container_bytes)
-            except (OSError, BlockingIOError) as exc:
-                _log.error(
-                    f"Cannot save container for publication {pub.short_url} to storage. Reason: {exc}"
-                )
-            # Return redirect to S3
-            if settings.USE_S3_STORAGE:
-                # Return redirect to S3
+        except Exception:
+            if pub.container:
                 return redirect(pub.container.url)
 
-    # Prepare response object.
-    response = HttpResponse(content_data, content_type="application/x-zip-compressed")
-    response["Content-Disposition"] = 'attachment; filename="{}"'.format(
-        container_filename
-    )
-
-    return response
-
-
-@extend_schema(request=None, responses=OpenApiTypes.OBJECT)
-@api_view(["GET"])
-@transaction.non_atomic_requests
-def download_surface(request, surface_ids):
-    # `surface_ids` is a comma-separated list of surface IDs as a string,
-    # e.g. "1,2,3", we need to parse it
-    try:
-        surface_ids = [int(surface_id) for surface_id in surface_ids.split(",")]
-    except ValueError:
-        return HttpResponseBadRequest("Invalid surface ID(s).")
-
-    # Get surfaces from database
-    surfaces = [get_object_or_404(Surface, id=surface_id) for surface_id in surface_ids]
-
-    # Trigger the actual download
-    return download_surfaces(request, surfaces)
-
-
-@extend_schema(request=None, responses=OpenApiTypes.OBJECT)
-@api_view(["GET"])
-@transaction.non_atomic_requests
-def download_tag(request, name):
-    # `tag_name` is the name of the tag, we need to parse it
-    tag = get_object_or_404(Tag, name=name)
-    tag.authorize_user(request.user, "view")
-
-    # Trigger the actual download
-    return download_surfaces(
-        request, tag.get_descendant_surfaces(), f"{slugify(tag.name)}.zip"
-    )
+    return v2.download_surface(request, surface_ids)
 
 
 @extend_schema(

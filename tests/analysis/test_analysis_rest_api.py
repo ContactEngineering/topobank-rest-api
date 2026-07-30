@@ -155,6 +155,8 @@ def test_function_info(api_client, user_alice, handle_usage_statistics):
             "display_name": "Test implementation",
             "visualization_type": "series",
             "subject_types": ["surface", "topography", "tag"],
+            "description": "",
+            "reference_url": None,
             "kwargs_schema": {
                 "title": ASSERT_EQUAL_IGNORE_VALUE,
                 "additionalProperties": False,

@@ -1,13 +1,17 @@
 from django.db import transaction
-from django.http import Http404
+from django.http import Http404, HttpResponseBadRequest
 from django_filters.rest_framework import backends
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import mixins, serializers, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from topobank.analysis.models import Configuration, Workflow, WorkflowResult
 from topobank.analysis.registry import get_implementation, get_workflow_names
+from topobank.analysis.zip_model import ResultZipContainer
+from topobank.authorization import get_permission_model
+from topobank.taskapp.utils import run_task
 
 import topobank_rest_api.analysis.v1.views as v1
 from topobank_rest_api.analysis.permissions import WorkflowPermissions
@@ -18,6 +22,7 @@ from topobank_rest_api.analysis.v2.serializers import (
     ResultV2CreateSerializer,
     ResultV2DetailSerializer,
     ResultV2ListSerializer,
+    ResultZipContainerV2Serializer,
 )
 from topobank_rest_api.authorization.permissions import (
     ObjectPermission,
@@ -346,3 +351,72 @@ class ResultView(UserUpdateMixin, viewsets.ModelViewSet):
     @transaction.atomic
     def perform_create(self, serializer):
         return super().perform_create(serializer)
+
+
+class ResultZipContainerViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    """
+    Retrieve the state of a ZIP container of workflow results.
+
+    Clients created a container with `download_results` and poll this route
+    until the task has succeeded; `manifest.file` then holds the URL to download
+    the archive from.
+    """
+
+    queryset = ResultZipContainer.objects.all()
+    serializer_class = ResultZipContainerV2Serializer
+    permission_classes = [IsAuthenticated, ObjectPermission]
+
+
+@extend_schema(
+    description="Request a ZIP archive of the files of the given workflow results",
+    parameters=[
+        OpenApiParameter(
+            name="result_ids",
+            type=str,
+            location=OpenApiParameter.PATH,
+            description="Comma-separated list of workflow result IDs",
+        ),
+    ],
+    request=None,
+    responses=ResultZipContainerV2Serializer,
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@transaction.non_atomic_requests
+def download_results(request: Request, result_ids: str):
+    """
+    Start bundling the files of the given workflow results into a ZIP archive.
+
+    Bundling runs in a Celery task because a result can hold many large files;
+    the response describes the container, whose state the client then polls.
+    """
+    try:
+        result_ids = [int(result_id) for result_id in result_ids.split(",")]
+    except ValueError:
+        return HttpResponseBadRequest("Invalid workflow result ID(s).")
+
+    # Check that the user is allowed to see every requested result before
+    # dispatching any work
+    result_qs = WorkflowResult.objects.for_user(request.user).filter(id__in=result_ids)
+    if result_qs.count() != len(set(result_ids)):
+        inaccessible_ids = set(result_ids) - set(result_qs.values_list("id", flat=True))
+        return HttpResponseBadRequest(
+            "One or more analyses do not exist or are inaccessible: "
+            f"{inaccessible_ids}"
+        )
+
+    # Create the container and dispatch the task within a transaction
+    with transaction.atomic():
+        zip_container = ResultZipContainer.objects.create(
+            permissions=get_permission_model().objects.create(
+                user=request.user, allow="view"
+            )
+        )
+        run_task(zip_container, result_ids=result_ids)
+        zip_container.save()
+
+    return Response(
+        ResultZipContainerV2Serializer(
+            zip_container, context={"request": request}
+        ).data
+    )

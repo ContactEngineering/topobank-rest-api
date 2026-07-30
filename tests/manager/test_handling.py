@@ -5,7 +5,6 @@ import pytest
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.shortcuts import reverse
-from django.utils.text import slugify
 from pytest import approx
 from topobank.files.models import Manifest, ManifestSet
 from topobank.manager.models import MAX_LENGTH_DATAFILE_FORMAT, Surface, Topography
@@ -1270,47 +1269,6 @@ def test_delete_surface(api_client, one_topography, handle_usage_statistics):
 
 
 @pytest.mark.django_db
-def test_v1_download_surface(api_client, handle_usage_statistics):
-    user = UserFactory()
-    surface = SurfaceFactory(created_by=user)
-    Topography1DFactory(surface=surface)
-    Topography2DFactory(surface=surface)
-
-    api_client.force_login(user)
-
-    response = api_client.get(
-        reverse("manager:surface-download", kwargs=dict(surface_ids=surface.id)),
-        follow=True,
-    )
-    assert response.status_code == 200
-    assert (
-        response["Content-Disposition"]
-        == f'attachment; filename="{slugify(surface.name) + ".zip"}"'
-    )
-
-
-@pytest.mark.django_db
-def test_v1_download_tag(api_client, handle_usage_statistics):
-    user = UserFactory()
-    tag = TagFactory(name="test_tag")
-    surface = SurfaceFactory(created_by=user, tags=[tag])
-    Topography1DFactory(surface=surface)
-    Topography2DFactory(surface=surface)
-
-    api_client.force_login(user)
-
-    response = api_client.get(
-        reverse("manager:tag-download", kwargs=dict(name=tag.name)),
-        follow=True,
-    )
-    assert response.status_code == 200, response.reason_phrase
-    assert (
-        response["Content-Disposition"]
-        == f'attachment; filename="{slugify(tag.name) + ".zip"}"'
-    )
-
-
-@pytest.mark.django_db
 def test_v2_download_surface(api_client, settings, handle_usage_statistics, django_capture_on_commit_callbacks):
     settings.CELERY_TASK_ALWAYS_EAGER = True
 
@@ -1333,6 +1291,9 @@ def test_v2_download_surface(api_client, settings, handle_usage_statistics, djan
     assert response.status_code == 200, response.reason_phrase
     assert "manifest" in response.data
     assert response.data["task_state"] == "su"
+    # The polled container has to carry the URL to download from. This is what
+    # the client follows; it does not go via the manifest detail route.
+    assert response.data["manifest"]["file"]
     response = api_client.get(response.data["manifest"]["url"])
     assert response.status_code == 200, response.reason_phrase
     assert "file" in response.data
@@ -1362,6 +1323,9 @@ def test_v2_download_tag(api_client, settings, handle_usage_statistics, django_c
     assert response.status_code == 200, response.reason_phrase
     assert "manifest" in response.data
     assert response.data["task_state"] == "su"
+    # The polled container has to carry the URL to download from. This is what
+    # the client follows; it does not go via the manifest detail route.
+    assert response.data["manifest"]["file"]
     response = api_client.get(response.data["manifest"]["url"])
     assert response.status_code == 200, response.reason_phrase
     assert "file" in response.data

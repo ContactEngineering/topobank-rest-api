@@ -1,11 +1,10 @@
 from django.conf import settings
-from django.urls import path
+from django.urls import path, re_path
 from rest_framework.routers import DefaultRouter, SimpleRouter
+from topobank.analysis import workflows
 
 import topobank_rest_api.analysis.v1.views as v1
 import topobank_rest_api.analysis.v2.views as v2
-
-from topobank.analysis import workflows
 
 router = DefaultRouter() if settings.DEBUG else SimpleRouter()
 router.register(r"api/configuration", v1.ConfigurationView, basename="configuration")
@@ -14,6 +13,11 @@ router.register(r"api/result", v1.ResultView, basename="result")
 router.register(r"v2/configurations", v2.ConfigurationView, basename="configuration-v2")
 router.register(r"v2/workflows", v2.WorkflowView, basename="workflow-v2")
 router.register(r"v2/results", v2.ResultView, basename="result-v2")
+router.register(
+    r"v2/zip-container",
+    v2.ResultZipContainerViewSet,
+    basename="result-zip-container-v2",
+)
 
 urlpatterns = router.urls
 
@@ -68,4 +72,13 @@ urlpatterns += [
     #
     # v2 API routes
     #
+    # POST
+    # * Start bundling the files of the given results into a ZIP archive.
+    #   Returns the container, whose state is then polled on the
+    #   'result-zip-container-v2-detail' route.
+    re_path(
+        r"v2/download-results/(?P<result_ids>[\d,]+)/$",
+        view=v2.download_results,
+        name="download-results-v2",
+    ),
 ]
