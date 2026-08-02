@@ -190,7 +190,15 @@ class StaffTaskSerializer(serializers.ModelSerializer):
         user = obj.created_by
         if user is None:
             return None
-        return {"id": user.id, "name": user.name, "username": user.username}
+        username = user.get_username()
+        # `name` is not a reliable label. It is a plain non-blank-validated
+        # CharField, and the production user model fills it from first/last
+        # name, which yields a whitespace-only string for accounts that have
+        # neither (the anonymous user, for one). Fall back to the username so
+        # that clients never receive an empty label, which renders as "this
+        # task has no user".
+        name = (getattr(user, "name", "") or "").strip()
+        return {"id": user.id, "name": name or username, "username": username}
 
     def get_queue(self, obj: WorkflowResult) -> str:
         try:

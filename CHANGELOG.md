@@ -1,5 +1,9 @@
 # Changelog for plugin *topobank-rest-api*
 
+## Unreleased
+
+- BUG: Task dashboard falls back to the username when a user's name is blank
+
 ## 1.0.0 (2026-07-31)
 
 Initial release. This package contains the Django REST Framework
