@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- ENH: Measurement serializers report `detrend_parameters`, the trend that
+  detrending subtracted
 - BUG: Task dashboard falls back to the username when a user's name is blank
 
 ## 1.0.0 (2026-07-31)

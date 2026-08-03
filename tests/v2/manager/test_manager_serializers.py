@@ -1,20 +1,20 @@
 """Tests for topobank.manager.v2 serializers."""
 
 import pytest
-
 from topobank.manager.models import Manifest
-from topobank_rest_api.manager.v2.serializers import (
-    SurfaceV2Serializer,
-    TopographyV2CreateSerializer,
-    TopographyV2Serializer,
-    ZipContainerV2Serializer,
-)
 from topobank.manager.zip_model import ZipContainer
 from topobank.testing.factories import (
     PermissionSetFactory,
     PropertyFactory,
     SurfaceFactory,
     TagFactory,
+)
+
+from topobank_rest_api.manager.v2.serializers import (
+    SurfaceV2Serializer,
+    TopographyV2CreateSerializer,
+    TopographyV2Serializer,
+    ZipContainerV2Serializer,
 )
 
 # TopographyV2Serializer Tests
@@ -58,8 +58,32 @@ def test_topography_v2_serializer_read_only_fields(api_rf, user_alice, one_line_
     assert "unit_editable" in data
     assert "height_scale_editable" in data
     assert "has_undefined_data" in data
+    assert "detrend_parameters" in data
     assert "is_periodic_editable" in data
     assert "is_metadata_complete" in data
+
+
+@pytest.mark.django_db
+def test_topography_v2_serializer_detrend_parameters(api_rf, user_alice, one_line_scan):
+    """The fitted trend reaches the client, not just the name of the field.
+
+    The fixture is a line scan detrended for tilt, so the fit determines a slope
+    along its single lateral direction and no radius.
+    """
+    one_line_scan.detrend_mode = "height"
+    one_line_scan.save()
+    one_line_scan.refresh_cache()
+    one_line_scan.grant_permission(user_alice, "view")
+    request = api_rf.get("/")
+    request.query_params = {}
+    request.user = user_alice
+
+    data = TopographyV2Serializer(
+        instance=one_line_scan, context={"request": request}
+    ).data
+
+    assert set(data["detrend_parameters"]) == {"slope_x"}
+    assert isinstance(data["detrend_parameters"]["slope_x"], float)
 
 
 @pytest.mark.django_db
