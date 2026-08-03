@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- ENH: Measurement serializers report `detrend_parameters`, the trend that
+  detrending subtracted
+- ENH: The dataset list shows only the latest published version of a dataset, so a
+  search no longer returns the same dataset once per version
 - ENH: Analysis plots are labelled in a unit that suits the data rather than in the
   unit of the first result, so an axis no longer reads `1.000e-4 mm`. Both axes are
   rewritten over one base length unit, keeping a density consistent with its
