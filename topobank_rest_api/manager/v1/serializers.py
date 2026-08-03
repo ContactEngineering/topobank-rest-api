@@ -113,6 +113,7 @@ class TopographySerializer(StrictFieldMixin, TaskStateModelSerializer):
             "height_scale_editable",
             "height_scale",
             "has_undefined_data",
+            "undefined_data_fraction",
             "fill_undefined_data_mode",
             "detrend_mode",
             "detrend_parameters",
