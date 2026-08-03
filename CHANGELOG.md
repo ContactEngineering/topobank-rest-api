@@ -7,6 +7,14 @@
   detrending subtracted
 - ENH: The dataset list shows only the latest published version of a dataset, so a
   search no longer returns the same dataset once per version
+- ENH: Analysis plots are labelled in a unit that suits the data rather than in the
+  unit of the first result, so an axis no longer reads `1.000e-4 mm`. Both axes are
+  rewritten over one base length unit, keeping a density consistent with its
+  abscissa
+- PERF: The card endpoint reads the metadata of the first analysis rather than its
+  full result. Both are one read of `result.json`, but the latter also fetched every
+  data series of that analysis as a separate object, none of which is needed to
+  learn its units and labels
 - BUG: Task dashboard falls back to the username when a user's name is blank
 
 ## 1.0.0 (2026-07-31)
