@@ -50,6 +50,7 @@ class TopographyV2Serializer(StrictFieldMixin, TaskStateModelSerializer):
             "unit_editable",
             "height_scale_editable",
             "has_undefined_data",
+            "undefined_data_fraction",
             "is_periodic_editable",
             "is_metadata_complete",
         ]

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- ENH: Measurement serializers report `undefined_data_fraction`
 - BUG: Task dashboard falls back to the username when a user's name is blank
 
 ## 1.0.0 (2026-07-31)
