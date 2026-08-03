@@ -25,6 +25,10 @@ from topobank.analysis.utils import filter_and_order_analyses
 from topobank.manager.models import Surface
 from topobank.manager.utils import demangle_content_type
 
+from topobank_rest_api.analysis.display_units import (
+    natural_display_units,
+    series_extents,
+)
 from topobank_rest_api.analysis.permissions import WorkflowPermissions
 from topobank_rest_api.utils import get_api_url
 
@@ -313,13 +317,44 @@ def series_card_view(request, **kwargs):
     #
     # Use first analysis to determine some properties for the whole plot
     #
-    first_analysis_result = analyses_success_list[0].result
+    # The metadata is enough: everything read here sits at the top level of
+    # result.json, whereas `result` would unsplit the file and fetch every data
+    # series of this analysis from the object store.
+    first_analysis_result = analyses_success_list[0].result_metadata
     xunit = first_analysis_result["xunit"] if "xunit" in first_analysis_result else "m"
     yunit = first_analysis_result["yunit"] if "yunit" in first_analysis_result else "m"
 
     ureg = (
         UnitRegistry()
     )  # for unit conversion for each analysis individually, see below
+
+    #
+    # Context information for the figure
+    #
+    def _get_axis_type(key):
+        return first_analysis_result.get(key) or "linear"
+
+    #
+    # The unit of the first analysis is the unit of the measurement it ran on,
+    # which need not suit the data: a measurement stored in millimetres but a
+    # hundred nanometres across gives an axis of 1×10⁻⁴ mm. Pick a unit that fits
+    # the data instead, from the extents the analyses record alongside their series
+    # (ce-ui#39). Both axes are rewritten over one base length unit, so that a
+    # density stays consistent with its abscissa. Everything is converted into
+    # whatever comes out of this further down, so only the choice is made here.
+    #
+    display_units = natural_display_units(
+        {
+            axis: {
+                "unit": unit,
+                "extents": series_extents(analyses_success_list, axis),
+                "scale": _get_axis_type(f"{axis}scale"),
+            }
+            for axis, unit in (("x", xunit), ("y", yunit))
+        }
+    )
+    xunit = display_units["x"]
+    yunit = display_units["y"]
 
     #
     # Determine axes labels
@@ -330,12 +365,6 @@ def series_card_view(request, **kwargs):
     y_axis_label = first_analysis_result["ylabel"]
     if yunit is not None:
         y_axis_label += f" ({yunit})"
-
-    #
-    # Context information for the figure
-    #
-    def _get_axis_type(key):
-        return first_analysis_result.get(key) or "linear"
 
     plot_configuration.update(
         {
