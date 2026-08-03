@@ -116,6 +116,7 @@ class TopographySerializer(StrictFieldMixin, TaskStateModelSerializer):
             "undefined_data_fraction",
             "fill_undefined_data_mode",
             "detrend_mode",
+            "detrend_parameters",
             "resolution_x",
             "resolution_y",
             "bandwidth_lower",

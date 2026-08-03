@@ -3,6 +3,8 @@
 ## Unreleased
 
 - ENH: Measurement serializers report `undefined_data_fraction`
+- ENH: Measurement serializers report `detrend_parameters`, the trend that
+  detrending subtracted
 - ENH: The dataset list shows only the latest published version of a dataset, so a
   search no longer returns the same dataset once per version
 - BUG: Task dashboard falls back to the username when a user's name is blank
