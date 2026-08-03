@@ -1,7 +1,16 @@
 # Changelog for plugin *topobank-rest-api*
 
-## Unreleased
+## 1.1.0 (2026-08-03)
 
+- API: Removed the `set-name` and `set-result-permissions` endpoints. Neither was
+  reachable from any client, and neither was authorized: `set-name` let any logged-in
+  user rename an arbitrary result and detach it from its subject, and
+  `set-result-permissions` granted and revoked access to a result while checking only
+  for `view` permission, so a read-only recipient could re-share it. A result is named
+  by a normal field update and its permissions are set through the authorization API
+- API: `GET /analysis/api/memory-usage/` is restricted to staff. It reports on every
+  analysis in the instance, including analyses of datasets the caller cannot see, and
+  was readable without authentication
 - ENH: Measurement serializers report `undefined_data_fraction`
 - ENH: Measurement serializers report `detrend_parameters`, the trend that
   detrending subtracted
