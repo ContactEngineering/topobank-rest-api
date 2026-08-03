@@ -243,8 +243,11 @@ def series_extents(analyses, axis):
     Parameters
     ----------
     analyses : iterable of topobank.analysis.models.WorkflowResult
-        The analyses shown on a card. Their metadata is read, not their series
-        data, so this costs nothing beyond what the card already loads.
+        The analyses shown on a card. This reads `result_metadata`, which is one
+        object read per analysis, and the card reads it for every analysis anyway
+        while collecting series names and conversion factors. `WorkflowResult`
+        caches it per instance, so being called first here rather than there does
+        not add a read — and it never touches the series data itself.
     axis : str
         'x' or 'y'.
 

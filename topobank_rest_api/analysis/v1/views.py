@@ -318,8 +318,9 @@ def series_card_view(request, **kwargs):
     # Use first analysis to determine some properties for the whole plot
     #
     # The metadata is enough: everything read here sits at the top level of
-    # result.json, whereas `result` would unsplit the file and fetch every data
-    # series of this analysis from the object store.
+    # result.json. Both properties read that one file from the object store, but
+    # `result` also unsplits it, which fetches every data series of this analysis
+    # as a separate object — none of which is needed for a unit or a label.
     first_analysis_result = analyses_success_list[0].result_metadata
     xunit = first_analysis_result["xunit"] if "xunit" in first_analysis_result else "m"
     yunit = first_analysis_result["yunit"] if "yunit" in first_analysis_result else "m"

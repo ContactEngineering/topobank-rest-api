@@ -7,7 +7,9 @@
   rewritten over one base length unit, keeping a density consistent with its
   abscissa
 - PERF: The card endpoint reads the metadata of the first analysis rather than its
-  full result, which used to fetch every data series of that analysis
+  full result. Both are one read of `result.json`, but the latter also fetched every
+  data series of that analysis as a separate object, none of which is needed to
+  learn its units and labels
 - BUG: Task dashboard falls back to the username when a user's name is blank
 
 ## 1.0.0 (2026-07-31)
