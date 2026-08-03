@@ -19,7 +19,6 @@ def test_serializer_subject_topography(api_rf, one_line_scan, test_workflow):
         data,
         {
             "id": analysis.id,
-            "api": ASSERT_EQUAL_IGNORE_VALUE,
             "url": f"http://testserver/analysis/api/result/{analysis.id}/",
             "function": f"http://testserver/analysis/api/workflow/{test_workflow.name}/",
             "subject": {
@@ -68,7 +67,6 @@ def test_serializer_subject_tag(api_rf, one_line_scan, test_workflow):
         data,
         {
             "id": analysis.id,
-            "api": ASSERT_EQUAL_IGNORE_VALUE,
             "url": f"http://testserver/analysis/api/result/{analysis.id}/",
             "function": f"http://testserver/analysis/api/workflow/{test_workflow.name}/",
             "subject": {

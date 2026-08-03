@@ -155,7 +155,6 @@ class ResultSerializer(
         fields = [
             "url",
             "id",
-            "api",
             "dependencies_url",
             "function",
             "subject",
@@ -186,7 +185,6 @@ class ResultSerializer(
         view_name="analysis:result-detail", read_only=True
     )
     dependencies_url = serializers.SerializerMethodField()
-    api = serializers.SerializerMethodField()
     # WorkflowResult.function is a property returning Workflow(name=...) — read-only URL
     function = serializers.HyperlinkedRelatedField(
         view_name="analysis:workflow-detail", lookup_field="name", read_only=True
@@ -236,24 +234,6 @@ class ResultSerializer(
                 ),
             }
         return None
-
-    @extend_schema_field(
-        {
-            "type": "object",
-            "properties": {
-                "set_name": {"type": "string"},
-            },
-            "required": ["set_name"],
-        }
-    )
-    def get_api(self, obj: WorkflowResult) -> dict:
-        return {
-            "set_name": reverse(
-                "analysis:set-name",
-                kwargs={"workflow_id": obj.id},
-                request=self.context["request"],
-            ),
-        }
 
     @extend_schema_field(serializers.URLField())
     def get_dependencies_url(self, obj):

@@ -52,6 +52,33 @@ def test_statistics(api_client, user_staff, handle_usage_statistics):
 
 
 @pytest.mark.django_db
+def test_memory_usage_is_staff_only(
+    api_client, user_staff, one_line_scan, test_workflow, handle_usage_statistics
+):
+    """
+    Memory usage reports on every analysis in the instance, including analyses
+    of datasets the caller cannot see, so it is restricted to staff.
+    """
+    AnalysisFactory(
+        subject_topography=one_line_scan, workflow_name=test_workflow.name
+    )
+    url = reverse("analysis:memory-usage")
+
+    # Anonymous callers are turned away
+    assert api_client.get(url).status_code == 403
+
+    # So is an ordinary user, even one who owns an analysis
+    api_client.force_login(one_line_scan.created_by)
+    assert api_client.get(url).status_code == 403
+
+    # Staff may see the whole instance
+    api_client.force_login(user_staff)
+    response = api_client.get(url)
+    assert response.status_code == 200
+    assert sum(len(rows) for rows in response.data.values()) == 1
+
+
+@pytest.mark.django_db
 def test_query_with_wrong_kwargs(api_client, one_line_scan, test_workflow):
     user = one_line_scan.created_by
     one_line_scan.grant_permission(user, "view")
@@ -403,7 +430,7 @@ def test_save_tag_analysis(
     assert WorkflowResult.objects.count() == 1
     assert response.status_code == 200
     assert len(response.data["analyses"]) == 1
-    set_name_url = response.data["analyses"][0]["api"]["set_name"]
+    result_id = response.data["analyses"][0]["id"]
 
     # Check that named result does not return unnamed results
     with django_capture_on_commit_callbacks(execute=True) as callbacks:
@@ -413,11 +440,12 @@ def test_save_tag_analysis(
     assert response.status_code == 200
     assert len(response.data) == 0
 
-    # Set analysis name and description
-    response = api_client.post(
-        set_name_url, {"name": "my-name", "description": "my-description"}
-    )
-    assert response.status_code == 200
+    # Set analysis name and description. `save` detaches a named result from its
+    # subject, so this is all that naming a result takes.
+    analysis = WorkflowResult.objects.get(id=result_id)
+    analysis.name = "my-name"
+    analysis.description = "my-description"
+    analysis.save()
     assert WorkflowResult.objects.count() == 1  # This does not make a copy
     assert WorkflowResult.objects.get(name="my-name").description == "my-description"
 

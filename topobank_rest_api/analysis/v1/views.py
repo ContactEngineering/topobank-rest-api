@@ -3,10 +3,9 @@ from collections import defaultdict
 
 import pydantic
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Case, F, Max, Sum, Value, When
-from django.http import Http404, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import Http404, HttpResponseBadRequest
 from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiTypes,
@@ -15,9 +14,10 @@ from drf_spectacular.utils import (
 )
 from pint import DimensionalityError, UndefinedUnitError, UnitRegistry
 from rest_framework import mixins, status, viewsets
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from topobank.analysis.models import Configuration, Workflow, WorkflowResult
 from topobank.analysis.registry import get_implementation, get_workflow_names
@@ -581,29 +581,6 @@ def series_card_view(request, **kwargs):
 
 
 @extend_schema(
-    description="Set name and description for a workflow result",
-    parameters=[
-        OpenApiParameter(
-            name="workflow_id",
-            type=int,
-            location=OpenApiParameter.PATH,
-            description="ID of the workflow result",
-        ),
-    ],
-    request=OpenApiTypes.OBJECT,
-    responses={200: OpenApiTypes.NONE},
-)
-@api_view(["POST"])
-@transaction.atomic
-def set_name(request, workflow_id: int):
-    name = request.data.get("name")
-    description = request.data.get("description")
-    analysis = get_object_or_404(WorkflowResult, id=workflow_id)
-    analysis.set_name(name, description)
-    return Response({})
-
-
-@extend_schema(
     description="Get statistics about workflow results",
     request=None,
     responses=OpenApiTypes.OBJECT,
@@ -625,11 +602,16 @@ def statistics(request):
 
 
 @extend_schema(
-    description="Get memory usage statistics for workflow results",
+    description=(
+        "Get memory usage statistics for workflow results. Staff only: this "
+        "reports on every analysis in the instance, including those of datasets "
+        "the caller cannot see."
+    ),
     request=None,
     responses=OpenApiTypes.OBJECT,
 )
 @api_view(["GET"])
+@permission_classes([IsAdminUser])
 @transaction.non_atomic_requests
 def memory_usage(request):
     m = defaultdict(list)
@@ -704,54 +686,3 @@ def memory_usage(request):
         ):
             m[function_name] += [x]
     return Response(m, status=200)
-
-
-# TODO: Delete this function. Permissions are handled in auth ViewSet now.
-@extend_schema(
-    description="Set permissions for a workflow result",
-    parameters=[
-        OpenApiParameter(
-            name="workflow_id",
-            type=int,
-            location=OpenApiParameter.PATH,
-            description="ID of the workflow result",
-        ),
-    ],
-    request=OpenApiTypes.OBJECT,
-    responses={
-        200: OpenApiTypes.NONE,
-        204: OpenApiTypes.NONE,
-        405: OpenApiTypes.OBJECT,
-    },
-)
-@api_view(["PATCH"])
-@transaction.atomic
-def set_result_permissions(request, workflow_id=None):
-    analysis_obj = WorkflowResult.objects.get(pk=workflow_id)
-    user = request.user
-
-    # Check that user has the right to modify permissions
-    if not analysis_obj.has_permission(user, "view"):
-        return HttpResponseForbidden()
-
-    for permission in request.data:
-        other_user = get_user_model().resolve(permission["user"])
-        if other_user == user:
-            if permission["permission"] == "no-access":
-                return Response(
-                    {"message": "Permissions cannot be revoked from logged in user"},
-                    status=405,
-                )  # Not allowed
-
-    # Everything looks okay, update permissions
-    for permission in request.data:
-        other_user = get_user_model().resolve(permission["user"])
-        if other_user != user:
-            perm = permission["permission"]
-            if perm == "no-access":
-                analysis_obj.revoke_permission(other_user)
-            else:
-                analysis_obj.grant_permission(other_user, perm)
-
-    # Permissions were updated successfully, return 204 No Content
-    return Response({}, status=204)
