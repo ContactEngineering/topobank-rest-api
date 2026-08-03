@@ -1,5 +1,5 @@
 from django.contrib.postgres.search import SearchQuery
-from django.db.models import Q, Subquery
+from django.db.models import F, OuterRef, Q, Subquery
 from rest_framework.exceptions import ParseError, PermissionDenied
 from topobank.manager.models import Surface
 
@@ -128,6 +128,39 @@ def filter_by_tag(request, qs):
 
 
 # v1 filter
+def filter_to_latest_version(request, qs):
+    """Collapse the published versions of a dataset to its latest version.
+
+    Publishing creates a new `Surface`, so every version of a dataset is a row of
+    its own. Ordered by date or by name they end up scattered through the list:
+    searching for a dataset returns one hit near the top and another far down,
+    with the same name and nothing but a small note to tell them apart, and most
+    people click the first one they find (see ContactEngineering/ce-ui#38). Only
+    the latest version is listed; the others are reachable from its detail page.
+
+    Left alone are unpublished datasets — a work in progress is nobody's older
+    version — and publications that do not record an original, which cannot be
+    grouped. Every version of a dataset is public, so this never hides a version
+    the user would otherwise have been able to see.
+    """
+    if not hasattr(Surface, "publication"):
+        # The publication plugin is not installed, so there are no versions.
+        return qs
+    latest_of_group = (
+        Surface.objects.filter(
+            publication__original_surface=OuterRef("publication__original_surface")
+        )
+        .order_by("-publication__version")
+        .values("pk")[:1]
+    )
+    return qs.annotate(_latest_of_group=Subquery(latest_of_group)).filter(
+        Q(publication__isnull=True)
+        | Q(publication__original_surface__isnull=True)
+        | Q(pk=F("_latest_of_group"))
+    )
+
+
+# v1 filter
 def order_results(request, qs):
     order_by = request.GET.get("order_by", default="date")
     if order_by not in ORDER_BY_FILTER_CHOICES:
@@ -146,6 +179,7 @@ def filter_surfaces(request, qs):
     - readable by the current user
     - filtered by sharing status
     - filtered by search expression, if given
+    - collapsed to the latest version of each published dataset
 
     Parameters
     ----------
@@ -162,6 +196,7 @@ def filter_surfaces(request, qs):
         filter_by_name,
         filter_by_sharing_status,
         filter_by_search_term,
+        filter_to_latest_version,
         order_results,
     ]
 

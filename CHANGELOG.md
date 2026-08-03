@@ -3,6 +3,8 @@
 ## Unreleased
 
 - ENH: Measurement serializers report `undefined_data_fraction`
+- ENH: The dataset list shows only the latest published version of a dataset, so a
+  search no longer returns the same dataset once per version
 - BUG: Task dashboard falls back to the username when a user's name is blank
 
 ## 1.0.0 (2026-07-31)
