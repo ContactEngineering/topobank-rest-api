@@ -3,6 +3,12 @@ from django_filters.rest_framework import FilterSet, filters
 
 from topobank.manager.models import Surface, Topography
 
+from ..filters import (
+    filter_by_search_term,
+    filter_by_sharing_status,
+    filter_to_latest_version,
+)
+
 """
 Note on Tag filtering performance:
 --------------------------------------------
@@ -147,8 +153,17 @@ class SurfaceViewFilterSet(FilterSet):
     updated_by = filters.CharFilter(field_name="updated_by__name", lookup_expr="icontains")
     owned_by = filters.CharFilter(field_name="owned_by__name", lookup_expr="icontains")
 
+    # Filters the dataset list needs, shared with v1 (see ../filters.py):
+    # full-text search over the precomputed search document, the
+    # own/others/published selector, author chips, and collapsing published
+    # versions to the latest one.
+    search = filters.CharFilter(method="filter_search")
+    sharing_status = filters.CharFilter(method="filter_sharing_status")
+    author = filters.CharFilter(method="filter_author")
+    latest_versions = filters.BooleanFilter(method="filter_latest_versions")
+
     order = filters.OrderingFilter(
-        fields=['created_at', 'updated_at']
+        fields=['created_at', 'updated_at', 'name']
     )
 
     class Meta:
@@ -164,8 +179,32 @@ class SurfaceViewFilterSet(FilterSet):
             "created_by",
             "owned_by",
             "updated_by",
+            "search",
+            "sharing_status",
+            "author",
+            "latest_versions",
             "order",
         ]
+
+    def filter_search(self, queryset, name, value):
+        # The shared filter reads the `search` query parameter itself
+        return filter_by_search_term(self.request, queryset)
+
+    def filter_sharing_status(self, queryset, name, value):
+        # The shared filter reads and validates `sharing_status` itself
+        return filter_by_sharing_status(self.request, queryset)
+
+    def filter_author(self, queryset, name, value):
+        # Multiple `author` parameters must all match (AND), like in v1
+        for author in self.request.query_params.getlist("author"):
+            if author:
+                queryset = queryset.filter(created_by__name__icontains=author)
+        return queryset
+
+    def filter_latest_versions(self, queryset, name, value):
+        if value:
+            return filter_to_latest_version(self.request, queryset)
+        return queryset
 
     def filter_tag_iexact(self, queryset, name, value):
         """

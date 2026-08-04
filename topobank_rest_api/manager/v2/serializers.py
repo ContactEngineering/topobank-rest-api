@@ -160,14 +160,6 @@ class TopographyV2Serializer(StrictFieldMixin, TaskStateModelSerializer):
             # The kwargs that were provided do not match the function
             raise serializers.ValidationError({"message": str(exc)})
 
-    def to_representation(self, instance: Topography):
-        # Ensure that retrieving the Topography starts the task if it is ready.
-        # Only check if task needs starting when task_state is "no" to avoid overhead
-        if instance.task_state == "no":
-            instance.ensure_task_started()
-        return super().to_representation(instance)
-
-
 class TopographyV2CreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Topography
@@ -208,6 +200,29 @@ class TopographyV2CreateSerializer(serializers.ModelSerializer):
         return TopographyV2Serializer(instance, context=self.context).data
 
 
+class TopographySummarySerializer(serializers.ModelSerializer):
+    """Lightweight measurement summary embedded in surface responses.
+
+    Carries just enough for a dataset list row — identity, processing state and
+    the thumbnail — so that listing surfaces requires no follow-up requests per
+    surface. `task_state` is the database field, not the reconciled Celery
+    state: a list must not pay a result-backend round trip per measurement.
+    """
+
+    class Meta:
+        model = Topography
+        fields = ["id", "name", "task_state", "thumbnail_url"]
+
+    task_state = serializers.CharField(read_only=True)
+    thumbnail_url = serializers.SerializerMethodField()
+
+    def get_thumbnail_url(self, obj: Topography) -> str | None:
+        thumbnail = obj.thumbnail
+        if thumbnail is None or not thumbnail.file:
+            return None
+        return thumbnail.file.url
+
+
 class SurfaceV2Serializer(StrictFieldMixin, serializers.HyperlinkedModelSerializer):
     """v2 Serializer for Surface model."""
 
@@ -223,6 +238,8 @@ class SurfaceV2Serializer(StrictFieldMixin, serializers.HyperlinkedModelSerializ
             "owned_by",
             "created_at",
             "updated_at",
+            "topographies",
+            "sharing_status",
         ]
         fields = read_only_fields + [
             "attachments",
@@ -253,9 +270,32 @@ class SurfaceV2Serializer(StrictFieldMixin, serializers.HyperlinkedModelSerializ
 
     attachments = ModelRelatedField(view_name="files:folder-api-detail", read_only=True)
 
+    # Embedded measurement summaries; see `TopographySummarySerializer`
+    topographies = TopographySummarySerializer(
+        source="topography_set", many=True, read_only=True
+    )
+
     # Everything else
     properties = PropertiesField(required=False)
     tags = TagRelatedManagerField(required=False)
+    sharing_status = serializers.SerializerMethodField()
+
+    @extend_schema_field(
+        {
+            "type": "string",
+            "enum": ["own", "shared", "published"],
+        }
+    )
+    def get_sharing_status(self, obj: Surface) -> str:
+        # `publication` only exists when the publication plugin is installed;
+        # its reverse one-to-one raises an AttributeError-derived exception
+        # when the surface is unpublished, which getattr turns into None.
+        if getattr(obj, "publication", None) is not None:
+            return "published"
+        request = self.context["request"]
+        if request.user.is_authenticated and obj.created_by_id == request.user.id:
+            return "own"
+        return "shared"
 
     @extend_schema_field(
         {
