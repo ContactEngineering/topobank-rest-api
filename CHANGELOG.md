@@ -1,5 +1,11 @@
 # Changelog for plugin *topobank-rest-api*
 
+## 1.3.0 (2026-08-04)
+
+- ENH: The v1 topography list selects and prefetches every relation its
+  serializer touches, so listing the measurements of a dataset costs a
+  handful of queries instead of ~10 per measurement
+
 ## 1.2.0 (2026-08-04)
 
 - ENH: The v2 surface list embeds a lightweight summary of each measurement

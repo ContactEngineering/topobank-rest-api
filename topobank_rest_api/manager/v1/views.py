@@ -142,7 +142,22 @@ class TopographyViewSet(
         if getattr(self, "swagger_fake_view", False):
             return Topography.objects.none()
 
-        qs = Topography.objects.for_user(self.request.user)
+        # Everything the serializer touches per object, so that listing the
+        # measurements of a dataset does not degenerate into ~10 queries per
+        # measurement
+        qs = Topography.objects.for_user(self.request.user).select_related(
+            "surface",
+            "permissions",
+            "created_by",
+            "datafile",
+            "squeezed_datafile",
+            "thumbnail",
+            "deepzoom",
+            "attachments",
+        ).prefetch_related(
+            "tags",
+            "permissions__user_permissions__user",
+        )
         surfaces = self.request.query_params.getlist("surface")
         tags = self.request.query_params.getlist("tag")
         tags_startswith = self.request.query_params.getlist("tag_startswith")
