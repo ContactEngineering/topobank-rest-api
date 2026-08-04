@@ -160,6 +160,7 @@ class TopographyV2Serializer(StrictFieldMixin, TaskStateModelSerializer):
             # The kwargs that were provided do not match the function
             raise serializers.ValidationError({"message": str(exc)})
 
+
 class TopographyV2CreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Topography
