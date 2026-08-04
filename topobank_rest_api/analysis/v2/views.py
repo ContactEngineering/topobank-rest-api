@@ -178,15 +178,26 @@ class ResultView(UserUpdateMixin, viewsets.ModelViewSet):
         ]
     )
     def list(self, request, *args, **kwargs):
-        """Override list to initialize permission cache for performance"""
-        # Initialize cache on user object to avoid repeated queries during serialization
+        """Override list to build the per-request permission cache."""
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+
+        # Compute permissions once per unique PermissionSet instead of once per
+        # serialized object; `PermissionsField` reads this from the context.
+        permission_cache = {}
         if request.user.is_authenticated:
-            # Cache user groups once per request
-            if not hasattr(request.user, "_cached_group_ids"):
-                request.user._cached_group_ids = list(
-                    request.user.groups.values_list("id", flat=True)
-                )
-        return super().list(request, *args, **kwargs)
+            objects_to_cache = page if page is not None else queryset
+            for obj in objects_to_cache:
+                if obj.permissions_id not in permission_cache:
+                    permission_cache[obj.permissions_id] = obj.permissions.get_for_user(request.user)
+
+        context = {"permission_cache": permission_cache, "request": request}
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context=context)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True, context=context)
+        return Response(serializer.data)
 
     @extend_schema(
         request={

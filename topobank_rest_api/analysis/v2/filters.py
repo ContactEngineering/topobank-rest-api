@@ -25,6 +25,13 @@ class ResultViewFilterSet(FilterSet):
         help_text="Filter by task state. Can be specified multiple times: task_state=su&task_state=fa"
     )
 
+    # Filter by result IDs; lets a client poll the task state of a whole batch
+    # of analyses in a single request (ids=1,2,3)
+    ids = filters.BaseInFilter(
+        field_name="id",
+        label="Result IDs"
+    )
+
     # Filter by creation time on or after (greater than or equal)
     created_gte = filters.DateTimeFilter(
         field_name="created_at",
@@ -67,6 +74,7 @@ class ResultViewFilterSet(FilterSet):
         model = WorkflowResult
         fields = [
             "task_state",
+            "ids",
             "created_gte",
             "created_lte",
             "workflow_name",
