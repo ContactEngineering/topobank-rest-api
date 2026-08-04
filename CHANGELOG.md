@@ -1,5 +1,24 @@
 # Changelog for plugin *topobank-rest-api*
 
+## 1.2.0 (2026-08-04)
+
+- ENH: The v2 surface list embeds a lightweight summary of each measurement
+  (id, name, task state, thumbnail URL), so a dataset list renders from one
+  response instead of one request per row
+- ENH: The v2 surface endpoint supports the dataset-list filters that so far
+  only v1 had: full-text `search`, `sharing_status`, `author` chips (ANDed),
+  `latest_versions` (collapse published versions to the latest) and ordering
+  by name. The filter implementations are shared with v1
+- ENH: The v2 surface list computes permissions once per unique permission set
+  per request, as the topography list already did
+- ENH: The v2 surface serializer reports `sharing_status` (own/shared/published)
+- API: Retrieving a v2 topography no longer dispatches the inspection task from
+  inside serialization — a list GET used to open a transaction and dispatch a
+  Celery task per never-inspected row. Inspection now starts only on a detail
+  retrieve
+- BUG: Creating a dataset through v2 names it "Digital surface twin #<id>" when
+  no name is given, like v1 does
+
 ## 1.1.0 (2026-08-03)
 
 - API: Removed the `set-name` and `set-result-permissions` endpoints. Neither was

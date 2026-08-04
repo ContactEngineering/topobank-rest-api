@@ -57,7 +57,7 @@ class SurfaceViewSet(UserUpdateMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         # PermissionFilterBackend handles permission filtering with two-step optimization
         # We just apply business logic filters and optimizations here
-        return Surface.objects.select_related(
+        qs = Surface.objects.select_related(
             'permissions',
             'created_by',
             'updated_by',
@@ -65,22 +65,40 @@ class SurfaceViewSet(UserUpdateMixin, viewsets.ModelViewSet):
             'attachments',
         ).prefetch_related(
             'topography_set',
+            'topography_set__thumbnail',
             'properties',
             'tags',
             'permissions__user_permissions',
             'permissions__user_permissions__user',
         ).order_by('name')
+        if hasattr(Surface, 'publication'):
+            # Only present when the publication plugin is installed; the
+            # serializer's `sharing_status` (and the plugin-patched
+            # `publication` field) read it per surface.
+            qs = qs.select_related('publication')
+        return qs
 
     def list(self, request, *args, **kwargs):
-        """Override list to initialize permission cache for performance"""
-        # Initialize cache on user object to avoid repeated queries during serialization
+        """Override list to build the per-request permission cache."""
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+
+        # Compute permissions once per unique PermissionSet instead of once per
+        # serialized object; `PermissionsField` reads this from the context.
+        permission_cache = {}
         if request.user.is_authenticated:
-            # Cache user groups once per request
-            if not hasattr(request.user, '_cached_group_ids'):
-                request.user._cached_group_ids = list(
-                    request.user.groups.values_list('id', flat=True)
-                )
-        return super().list(request, *args, **kwargs)
+            objects_to_cache = page if page is not None else queryset
+            for obj in objects_to_cache:
+                if obj.permissions_id not in permission_cache:
+                    permission_cache[obj.permissions_id] = obj.permissions.get_for_user(request.user)
+
+        context = {'permission_cache': permission_cache, 'request': request}
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context=context)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True, context=context)
+        return Response(serializer.data)
 
     @transaction.atomic
     def perform_destroy(self, instance):
@@ -94,7 +112,13 @@ class SurfaceViewSet(UserUpdateMixin, viewsets.ModelViewSet):
 
     @transaction.atomic
     def perform_create(self, serializer):
-        return super().perform_create(serializer)
+        instance = super().perform_create(serializer)
+        # A dataset can be created without a name (the UI creates first, lets
+        # the user rename later); give it a recognizable one, like v1 does.
+        if instance is not None and not instance.name:
+            instance.name = f"Digital surface twin #{instance.id}"
+            instance.save(update_fields=["name"])
+        return instance
 
 
 @extend_schema_view(
@@ -148,16 +172,19 @@ class TopographyViewSet(UserUpdateMixin, viewsets.ModelViewSet):
             return TopographyV2CreateSerializer
         return super().get_serializer_class()
 
-    def list(self, request, *args, **kwargs):
-        """Override list to initialize permission cache for performance"""
-        # Initialize cache on user object to avoid repeated queries during serialization
-        if request.user.is_authenticated:
-            # Cache user groups once per request
-            if not hasattr(request.user, '_cached_group_ids'):
-                request.user._cached_group_ids = list(
-                    request.user.groups.values_list('id', flat=True)
-                )
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Kick off processing of a measurement that was never inspected. This
+        # used to happen in the serializer's to_representation, which meant a
+        # task dispatch and a database write per object inside *list* GETs;
+        # inspecting a single object is the only place it belongs.
+        if instance.task_state == "no":
+            instance.ensure_task_started()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
+    def list(self, request, *args, **kwargs):
+        """Override list to build the per-request permission cache."""
         # Get the filtered queryset and paginate it
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)

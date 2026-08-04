@@ -289,7 +289,10 @@ class PermissionsField(CachedUrlRelatedField):
                     request=request,
                 )
 
-        # Try to use cached permission results for performance
+        # Try to use cached permission results for performance. `obj` is the
+        # PermissionSet instance itself (this field sits on the `permissions`
+        # relation), so `obj.id` is the same value the viewsets key the cache
+        # by (`instance.permissions_id`).
         permission_cache = self.context.get('permission_cache', {})
         if obj.id in permission_cache:
             allow = permission_cache[obj.id]
