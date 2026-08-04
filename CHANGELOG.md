@@ -1,5 +1,15 @@
 # Changelog for plugin *topobank-rest-api*
 
+## 1.4.0 (2026-08-04)
+
+- ENH: The v2 workflow-result list accepts an `ids` filter, so a client can
+  poll the task states of a whole batch of analyses in a single request
+- ENH: The v2 workflow-result list serializer reports the remaining cheap task
+  columns (memory, duration, submission/start/end times), saving a detail
+  request per finished result
+- ENH: The v2 workflow-result list computes permissions once per unique
+  permission set per request, like the manager v2 lists
+
 ## 1.3.0 (2026-08-04)
 
 - ENH: The v1 topography list selects and prefetches every relation its

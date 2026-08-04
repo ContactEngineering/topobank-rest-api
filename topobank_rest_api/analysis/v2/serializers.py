@@ -250,6 +250,13 @@ class ResultV2ListSerializer(
             "task_messages",
             "task_error",
             "task_traceback",
+            # Plain columns a task-status display shows once a task finished;
+            # cheap to include and they save a detail request per result
+            "task_memory",
+            "task_duration",
+            "task_submission_time",
+            "task_start_time",
+            "task_end_time",
         ]
         fields += task_state_fields
         read_only_fields = fields
