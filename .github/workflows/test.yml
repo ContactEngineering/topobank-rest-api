@@ -30,57 +30,37 @@ jobs:
       DJANGO_SETTINGS_MODULE: test_settings
       DATABASE_URL: postgres://postgres:secret@localhost/topobank-test
       STORAGE_BACKEND: storages.backends.s3boto3.S3Boto3Storage
-      TOPOBANK_UPLOAD_METHOD: POST
+      TOPOBANK_UPLOAD_METHOD: ${{ matrix.upload-method }}
       AWS_ACCESS_KEY_ID: admin
       AWS_SECRET_ACCESS_KEY: secret12
       AWS_STORAGE_BUCKET_NAME: topobank-test
       AWS_S3_ENDPOINT_URL: http://localhost:9000
+      AWS_DEFAULT_REGION: us-east-1
 
     strategy:
       matrix:
         python-version: ['3.10']
+        # `get_upload_instructions` hands the client a presigned POST policy or
+        # a presigned PUT URL depending on this, and the tests upload through
+        # whichever it gets, so both are worth exercising.
+        upload-method: ['POST', 'PUT']
 
     steps:
-    - name: Start Minio
+    # SeaweedFS is started before the checkout so that it boots while the source
+    # code is checked out and the dependencies are installed. Readiness is
+    # checked in the "Create bucket" step below.
+    - name: Start SeaweedFS
       run: |
+        # The S3 gateway picks up AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY and
+        # creates a matching admin identity, so no `-s3.config` file is needed
+        # here (unlike in the development stack).
         docker run -d \
-          --name minio \
+          --name seaweedfs \
           -p 9000:9000 \
-          -p 9001:9001 \
-          -e MINIO_ROOT_USER=$AWS_ACCESS_KEY_ID \
-          -e MINIO_ROOT_PASSWORD=$AWS_SECRET_ACCESS_KEY \
-          minio/minio:latest \
-          server /data --console-address ":9001"
-
-    - name: Create bucket
-      run: |
-        # -f: fail (non-zero exit) on HTTP errors instead of saving an error
-        #     page, -L: follow redirects, -sS: quiet but still show errors.
-        # Without these, a redirect/error response was silently written to
-        # `mc`, producing a non-executable text file ("mc: line 1: a: No such
-        # file or directory") that made every mc call fail and looked like a
-        # Minio-readiness problem.
-        curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc --create-dirs -o $HOME/minio-binaries/mc
-        chmod +x $HOME/minio-binaries/mc
-        export PATH=$PATH:$HOME/minio-binaries/
-
-        # Sanity-check that we actually downloaded a working binary.
-        mc --version
-
-        # Wait for Minio to be ready
-        echo "Waiting for Minio to be ready..."
-        for i in {1..30}; do
-          if mc alias set minio $AWS_S3_ENDPOINT_URL $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY; then
-            echo "Minio is ready!"
-            break
-          fi
-          echo "Attempt $i: Minio not ready yet, waiting..."
-          sleep 2
-        done
-
-        # Verify the alias was set successfully
-        mc alias list minio
-        mc mb --ignore-existing minio/$AWS_STORAGE_BUCKET_NAME
+          -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+          -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+          chrislusf/seaweedfs:latest \
+          server -filer -s3 -s3.port=9000
 
     - uses: actions/checkout@v6
       with:
@@ -99,6 +79,36 @@ jobs:
           git+https://github.com/ContactEngineering/topobank.git \
           git+https://github.com/ContactEngineering/topobank-orcid.git \
           .[dev]
+
+    # Uses the boto3 that ships with the project instead of a separately
+    # downloaded S3 client.
+    - name: Create bucket
+      run: |
+        python - <<'EOF'
+        import os
+        import time
+
+        import boto3
+
+        s3 = boto3.client("s3", endpoint_url=os.environ["AWS_S3_ENDPOINT_URL"])
+        bucket = os.environ["AWS_STORAGE_BUCKET_NAME"]
+
+        error = None
+        for attempt in range(30):
+            try:
+                s3.create_bucket(Bucket=bucket)
+                break
+            except s3.exceptions.BucketAlreadyOwnedByYou:
+                break
+            except Exception as exc:
+                error = exc
+                print(f"Attempt {attempt + 1}: SeaweedFS not ready yet, waiting...")
+                time.sleep(2)
+        else:
+            raise SystemExit(f"SeaweedFS did not become ready: {error}")
+
+        print(f"Bucket '{bucket}' is ready.")
+        EOF
 
     - name: Test
       run: pytest -s -v -rsx --cov=topobank_rest_api --cov-report=term --cov-report=xml

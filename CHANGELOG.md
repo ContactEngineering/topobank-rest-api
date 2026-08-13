@@ -1,5 +1,18 @@
 # Changelog for plugin *topobank-rest-api*
 
+## Unreleased
+
+- TST: The test settings honor `STORAGE_BACKEND` and `TOPOBANK_UPLOAD_METHOD`,
+  and derive `USE_S3_STORAGE` from the configured backend. Both were hardcoded,
+  so the S3 configuration in CI had no effect: the tests uploaded through the
+  local `upload-direct-local` route instead of to presigned S3 URLs, and the
+  `PUT` upload method was unreachable
+- TST: CI covers both upload methods, since `get_upload_instructions` hands out
+  a presigned POST policy or a presigned PUT URL depending on `UPLOAD_METHOD`
+- MAINT: CI runs against SeaweedFS instead of Minio, which is the S3
+  implementation the development stack uses. The bucket is created with `boto3`
+  instead of a separately downloaded `mc` client
+
 ## 1.4.0 (2026-08-04)
 
 - ENH: The v2 workflow-result list accepts an `ids` filter, so a client can
