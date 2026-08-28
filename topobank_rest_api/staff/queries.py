@@ -221,10 +221,10 @@ def user_dashboard_queryset(terms_ids) -> QuerySet:
 
     return queryset.annotate(
         num_surfaces=_count_per_user(
-            Surface.all_objects.filter(deletion_time__isnull=True)
+            Surface.all_objects.filter(deleted_at__isnull=True)
         ),
         num_topographies=_count_per_user(
-            Topography.all_objects.filter(deletion_time__isnull=True)
+            Topography.all_objects.filter(deleted_at__isnull=True)
         ),
     )
 

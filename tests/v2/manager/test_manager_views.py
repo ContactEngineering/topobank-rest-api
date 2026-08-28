@@ -3,7 +3,6 @@
 import pytest
 from django.urls import reverse
 from rest_framework import status
-
 from topobank.manager.models import Surface, Topography
 from topobank.manager.zip_model import ZipContainer
 from topobank.testing.factories import (
@@ -337,7 +336,8 @@ def test_topography_delete_success(api_client, user_alice, one_line_scan):
 
     # Verify soft delete
     one_line_scan.refresh_from_db()
-    assert one_line_scan.deletion_time is not None
+    assert one_line_scan.deleted_at is not None
+    assert one_line_scan.deleted_by == user_alice
 
 
 @pytest.mark.django_db
@@ -604,7 +604,8 @@ def test_surface_delete_success(api_client, user_alice):
 
     # Verify soft delete
     surface.refresh_from_db()
-    assert surface.deletion_time is not None
+    assert surface.deleted_at is not None
+    assert surface.deleted_by == user_alice
 
 
 @pytest.mark.django_db
