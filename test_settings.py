@@ -41,6 +41,12 @@ DATABASES = {
     "default": env.db("DATABASE_URL", default="postgres://postgres@localhost/topobank-test")
 }
 
+MIGRATION_MODULES = {
+    "authorization": "topobank.testing.mock_auth.authorization.migrations",
+    "organizations": "topobank.testing.mock_auth.organizations.migrations",
+    "users": "topobank.testing.mock_auth.users.migrations",
+}
+
 AUTH_USER_MODEL = "users.User"
 TOPOBANK_PERMISSION_MODEL = "authorization.PermissionSet"
 TOPOBANK_ORGANIZATION_MODEL = "organizations.Organization"
