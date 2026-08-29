@@ -102,9 +102,11 @@ class SurfaceViewSet(UserUpdateMixin, viewsets.ModelViewSet):
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        """Perform soft delete by setting deletion_time instead of hard delete."""
+        """Perform soft delete by setting deleted_at instead of hard delete."""
         self._notify(instance, verb="delete")
-        instance.lazy_delete()
+        instance.lazy_delete(
+            deleted_by=self.request.user if self.request.user.is_authenticated else None
+        )
 
     @transaction.atomic
     def perform_update(self, serializer):
@@ -211,8 +213,10 @@ class TopographyViewSet(UserUpdateMixin, viewsets.ModelViewSet):
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        """Perform soft delete by setting deletion_time instead of hard delete."""
-        instance.lazy_delete()
+        """Perform soft delete by setting deleted_at instead of hard delete."""
+        instance.lazy_delete(
+            deleted_by=self.request.user if self.request.user.is_authenticated else None
+        )
 
     @transaction.atomic
     def perform_update(self, serializer):
