@@ -1,5 +1,10 @@
 # Changelog for plugin *topobank-rest-api*
 
+## Unreleased
+
+- BUG: Users see their collaborators and find others by exact full name or ORCID iD;
+  permission panels failed to load and datasets could not be shared
+
 ## 1.4.0 (2026-08-04)
 
 - ENH: The v2 workflow-result list accepts an `ids` filter, so a client can
