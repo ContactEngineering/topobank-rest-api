@@ -1,85 +1,88 @@
 # Changelog for plugin *topobank-rest-api*
 
-## 1.4.0 (2026-08-04)
+<!--
+Style for this changelog (keep to it so entries stay uniform):
 
-- ENH: The v2 workflow-result list accepts an `ids` filter, so a client can
-  poll the task states of a whole batch of analyses in a single request
-- ENH: The v2 workflow-result list serializer reports the remaining cheap task
-  columns (memory, duration, submission/start/end times), saving a detail
-  request per finished result
-- ENH: The v2 workflow-result list computes permissions once per unique
-  permission set per request, like the manager v2 lists
+- Newest version first. Heading `vX.Y.Z (DDMonYY)`, underlined with dashes.
+  A version not yet released is headed `vX.Y.Z (not yet released)`.
+- One bullet per user-visible change, at most two lines (about 200
+  characters). Say what changed for the user and, if useful, why or by how
+  much. Omit internals: no function, class, file or variable names, no
+  environment variables, no commit or PR references.
+- Start every bullet with one of: `ENH:` (new feature), `BUG:` (fix),
+  `API:` (interface change), `PERF:` (speed or memory), `MAINT:`, `TST:`,
+  `DOC:`, `BUILD:`, `CI:`.
+- Small related fixes may share one bullet. No trailing period on bullets.
+-->
 
-## 1.3.0 (2026-08-04)
+v1.4.0 (04Aug26)
+----------------
 
-- ENH: The v1 topography list selects and prefetches every relation its
-  serializer touches, so listing the measurements of a dataset costs a
-  handful of queries instead of ~10 per measurement
+- ENH: The v2 analysis-result list can be filtered by a set of ids, so a client
+  polls the task states of a whole batch of analyses in a single request
+- ENH: The v2 analysis-result list reports memory use, duration and submission,
+  start and end times, saving a detail request per finished result
+- ENH: The v2 analysis-result list computes permissions once per distinct
+  permission set per request instead of once per result
 
-## 1.2.0 (2026-08-04)
+v1.3.0 (04Aug26)
+----------------
 
-- ENH: The v2 surface list embeds a lightweight summary of each measurement
-  (id, name, task state, thumbnail URL), so a dataset list renders from one
-  response instead of one request per row
-- ENH: The v2 surface endpoint supports the dataset-list filters that so far
-  only v1 had: full-text `search`, `sharing_status`, `author` chips (ANDed),
-  `latest_versions` (collapse published versions to the latest) and ordering
-  by name. The filter implementations are shared with v1
-- ENH: The v2 surface list computes permissions once per unique permission set
-  per request, as the topography list already did
-- ENH: The v2 surface serializer reports `sharing_status` (own/shared/published)
-- API: Retrieving a v2 topography no longer dispatches the inspection task from
-  inside serialization — a list GET used to open a transaction and dispatch a
-  Celery task per never-inspected row. Inspection now starts only on a detail
-  retrieve
-- BUG: Creating a dataset through v2 names it "Digital surface twin #<id>" when
-  no name is given, like v1 does
+- ENH: Listing the measurements of a dataset through the v1 API costs a
+  handful of database queries instead of about ten per measurement
 
-## 1.1.0 (2026-08-03)
+v1.2.0 (04Aug26)
+----------------
 
-- API: Removed the `set-name` and `set-result-permissions` endpoints. Neither was
-  reachable from any client, and neither was authorized: `set-name` let any logged-in
-  user rename an arbitrary result and detach it from its subject, and
-  `set-result-permissions` granted and revoked access to a result while checking only
-  for `view` permission, so a read-only recipient could re-share it. A result is named
-  by a normal field update and its permissions are set through the authorization API
-- API: `GET /analysis/api/memory-usage/` is restricted to staff. It reports on every
-  analysis in the instance, including analyses of datasets the caller cannot see, and
-  was readable without authentication
-- ENH: Measurement serializers report `undefined_data_fraction`
-- ENH: Measurement serializers report `detrend_parameters`, the trend that
+- ENH: The v2 dataset list embeds a short summary of each measurement (name,
+  task state, thumbnail), so a dataset list renders from a single response
+- ENH: The v2 dataset list supports the filters of v1: full-text search,
+  sharing status, author (combined with AND), latest version only, name order
+- ENH: The v2 dataset list computes permissions once per distinct permission
+  set per request, as the measurement list already did
+- ENH: The v2 dataset API reports whether a dataset is own, shared or published
+- API: Listing measurements through v2 no longer starts an inspection task for
+  each uninspected row; inspection now starts only when one is fetched alone
+- BUG: A dataset created through v2 without a name is named "Digital surface
+  twin" with its id, as in v1
+
+v1.1.0 (03Aug26)
+----------------
+
+- API: Removed two unused, unauthorized endpoints that let any user rename or
+  re-share an analysis result; use normal updates and the authorization API
+- API: The analysis memory-usage report is restricted to staff; it covered
+  every analysis in the instance and was readable without logging in
+- ENH: Measurements report the fraction of undefined data and the trend that
   detrending subtracted
-- ENH: The dataset list shows only the latest published version of a dataset, so a
-  search no longer returns the same dataset once per version
-- ENH: Analysis plots are labelled in a unit that suits the data rather than in the
-  unit of the first result, so an axis no longer reads `1.000e-4 mm`. Both axes are
-  rewritten over one base length unit, keeping a density consistent with its
-  abscissa
-- PERF: The card endpoint reads the metadata of the first analysis rather than its
-  full result. Both are one read of `result.json`, but the latter also fetched every
-  data series of that analysis as a separate object, none of which is needed to
-  learn its units and labels
-- BUG: Task dashboard falls back to the username when a user's name is blank
+- ENH: The dataset list shows only the latest published version of a dataset,
+  so a search no longer returns the same dataset once per version
+- ENH: Analysis plots are labelled in a unit that suits the data, so an axis
+  no longer reads 1.000e-4 mm; both axes share one base length unit
+- PERF: Analysis cards read only the metadata of the first analysis instead of
+  fetching every data series of its result
+- BUG: The task dashboard falls back to the username when a user's name is
+  blank
 
-## 1.0.0 (2026-07-31)
+v1.0.0 (31Jul26)
+----------------
 
-Initial release. This package contains the Django REST Framework
-implementation that was previously part of `topobank` and `ce-ui`.
-
-- ENH: Search end points
-- ENH: End points for the user and tasks dashboard
+- MAINT: Initial release, containing the REST API implementation that was
+  previously part of topobank and ce-ui
+- ENH: Search endpoints
+- ENH: Endpoints for the user and task dashboards
 - ENH: Asynchronous ZIP download
 - ENH: Workflow descriptions are exposed through the API
-- BUG: `force_inspect` re-dispatches in-flight tasks (`force=True`)
-- BUG: Expose the workflow `visualization_type` so analysis cards render
-- BUG: Added `is_staff` to the user serializer
-- BUG: Fixed the OpenAPI schema of the `allow` field to use enum values and
-  updated the schema for `/entry-points/`
-- MAINT: All remaining DRF functionality (serializers, filters, pagination, view
-  permissions, upload instructions) moved here from `topobank`
-- MAINT: Removed organization management and the REST surfaces for
-  organization-based sharing
-- MAINT: Removed django-guardian and workflow permission checks
-- MAINT: `analysis_function` -> `workflow`, `Folder` -> `ManifestSet`, removal of
-  `subject_dispatch`
-- BUILD: Build system is hatchling; added django-termsandconditions
+- BUG: Forcing a re-inspection also restarts inspections already in progress
+- BUG: The API exposes how a workflow is visualized, so analysis cards render
+- BUG: The user API reports whether a user is staff
+- BUG: The API schema lists the allowed values of permission levels and
+  describes the entry-points endpoint correctly
+- MAINT: All remaining REST functionality (serializers, filters, pagination,
+  permissions, upload instructions) moved here from topobank
+- MAINT: Removed organization management and organization-based sharing
+- MAINT: Removed django-guardian and per-workflow permission checks
+- MAINT: Analysis functions are called workflows and folders manifest sets; the
+  separate per-subject dispatch was removed
+- BUILD: The package builds with hatchling and depends on
+  django-termsandconditions
