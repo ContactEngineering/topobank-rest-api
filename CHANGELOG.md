@@ -1,5 +1,12 @@
 # Changelog for plugin *topobank-rest-api*
 
+## Unreleased
+
+- BUG: Users see the users they share access to a dataset with, and the user
+  search finds any other user by exact full name or ORCID iD. Every user could
+  see only themselves, so permission panels failed to load collaborators and
+  datasets could not be shared (topobank#1413, topobank#1425)
+
 ## 1.4.0 (2026-08-04)
 
 - ENH: The v2 workflow-result list accepts an `ids` filter, so a client can
