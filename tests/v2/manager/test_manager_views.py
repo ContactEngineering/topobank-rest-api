@@ -827,3 +827,24 @@ def test_upload_zip_finish_unauthenticated(api_client):
     response = api_client.post(url)
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("sharing_status", ["own", "others"])
+def test_surface_list_own_or_shared_is_empty_for_anonymous(
+    api_client, user_bob, sharing_status
+):
+    """Visitors who are not signed in own nothing and have nothing shared."""
+    from topobank.authorization import get_anonymous_user
+
+    # A dataset anonymous visitors may see (as a published one would be)
+    visible = SurfaceFactory(created_by=user_bob)
+    visible.grant_permission(get_anonymous_user(), "view")
+
+    url = reverse("manager:surface-v2-list")
+    assert visible.id in [s["id"] for s in api_client.get(url).data["results"]]
+
+    response = api_client.get(url, {"sharing_status": sharing_status})
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["count"] == 0

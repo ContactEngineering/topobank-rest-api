@@ -1,5 +1,10 @@
 # Changelog for plugin *topobank-rest-api*
 
+## Unreleased
+
+- BUG: Visitors who are not signed in get empty lists when filtering for their own
+  or shared datasets, instead of datasets that are merely visible to everyone
+
 ## 1.4.0 (2026-08-04)
 
 - ENH: The v2 workflow-result list accepts an `ids` filter, so a client can
