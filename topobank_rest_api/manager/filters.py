@@ -46,6 +46,10 @@ def filter_by_sharing_status(request, qs):
     sharing_status = request.GET.get("sharing_status", default="all")
     if sharing_status not in SHARING_STATUS_FILTER_CHOICES:
         raise ParseError(f"Cannot filter for sharing status '{sharing_status}'.")
+    if not request.user.is_authenticated and sharing_status in ("own", "others"):
+        # A visitor who is not signed in owns nothing and has nothing shared
+        # with them; they only see published datasets (ce-ui#308)
+        return qs.none()
     if sharing_status == "own":
         qs = qs.filter(created_by=request.user)
         if hasattr(Surface, "publication"):
